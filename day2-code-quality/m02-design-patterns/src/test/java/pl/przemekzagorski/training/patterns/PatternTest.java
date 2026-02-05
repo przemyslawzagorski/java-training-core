@@ -1,20 +1,19 @@
 package pl.przemekzagorski.training.patterns;
 
 import org.junit.jupiter.api.*;
-import pl.przemekzagorski.training.patterns.PatternExercisesSolutions.*;
-
-import java.util.List;
+import pl.przemekzagorski.training.patterns.builder.PirateShip;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * ╔═══════════════════════════════════════════════════════════════════╗
- * ║         TESTY - WZORCE PROJEKTOWE                                ║
+ * ║         TESTY - WZORCE PROJEKTOWE (DEMO)                         ║
  * ╠═══════════════════════════════════════════════════════════════════╣
- * ║  Testujemy Singleton, Factory, Builder, Strategy                 ║
+ * ║  Testujemy klasy demonstracyjne (Captain, ShipFactory, etc.)    ║
+ * ║  TEN PLIK JEST DLA STUDENTÓW - COMMITUJ DO REPO!                ║
  * ╚═══════════════════════════════════════════════════════════════════╝
  */
-@DisplayName("Design Patterns Tests")
+@DisplayName("Design Patterns Demo Tests")
 class PatternTest {
 
     // ════════════════════════════════════════════════════════════════
@@ -22,44 +21,60 @@ class PatternTest {
     // ════════════════════════════════════════════════════════════════
 
     @Nested
-    @DisplayName("Singleton Pattern")
+    @DisplayName("Singleton Pattern - Demo")
     class SingletonTests {
 
         @Test
-        @DisplayName("Enum Singleton - zawsze ta sama instancja")
-        void enumSingleton_shouldReturnSameInstance() {
+        @DisplayName("Captain Singleton - zawsze ta sama instancja")
+        void captainSingleton_shouldReturnSameInstance() {
             // When
-            AppConfig config1 = AppConfig.INSTANCE;
-            AppConfig config2 = AppConfig.INSTANCE;
+            pl.przemekzagorski.training.patterns.singleton.Captain captain1 =
+                pl.przemekzagorski.training.patterns.singleton.Captain.getInstance();
+            pl.przemekzagorski.training.patterns.singleton.Captain captain2 =
+                pl.przemekzagorski.training.patterns.singleton.Captain.getInstance();
 
             // Then
-            assertSame(config1, config2, "Singleton powinien zwrócić tę samą instancję");
+            assertSame(captain1, captain2, "Singleton powinien zwrócić tę samą instancję");
         }
 
         @Test
-        @DisplayName("Singleton - przechowuje konfigurację")
-        void singleton_shouldStoreConfiguration() {
+        @DisplayName("Captain Singleton - przechowuje dane")
+        void captainSingleton_shouldStoreData() {
             // Given
-            AppConfig config = AppConfig.INSTANCE;
+            pl.przemekzagorski.training.patterns.singleton.Captain captain =
+                pl.przemekzagorski.training.patterns.singleton.Captain.getInstance();
 
             // When
-            String dbUrl = config.getDatabaseUrl();
-            int port = config.getPort();
+            String name = captain.getName();
+            String shipName = captain.getShipName();
 
             // Then
-            assertNotNull(dbUrl);
-            assertTrue(port > 0);
+            assertNotNull(name);
+            assertNotNull(shipName);
         }
 
         @Test
-        @DisplayName("Classic Singleton - thread-safe getInstance()")
-        void classicSingleton_shouldReturnSameInstance() {
+        @DisplayName("CaptainEnum Singleton - zawsze ta sama instancja")
+        void captainEnumSingleton_shouldReturnSameInstance() {
             // When
-            AppConfigClassic config1 = AppConfigClassic.getInstance();
-            AppConfigClassic config2 = AppConfigClassic.getInstance();
+            pl.przemekzagorski.training.patterns.singleton.CaptainEnum captain1 =
+                pl.przemekzagorski.training.patterns.singleton.CaptainEnum.INSTANCE;
+            pl.przemekzagorski.training.patterns.singleton.CaptainEnum captain2 =
+                pl.przemekzagorski.training.patterns.singleton.CaptainEnum.INSTANCE;
 
             // Then
-            assertSame(config1, config2);
+            assertSame(captain1, captain2);
+        }
+
+        @Test
+        @DisplayName("CaptainEnum - może wydawać rozkazy")
+        void captainEnum_shouldGiveOrders() {
+            // Given
+            pl.przemekzagorski.training.patterns.singleton.CaptainEnum captain =
+                pl.przemekzagorski.training.patterns.singleton.CaptainEnum.INSTANCE;
+
+            // When/Then - nie rzuca wyjątku
+            assertDoesNotThrow(() -> captain.giveOrder("Hoist the sails!"));
         }
     }
 
@@ -68,79 +83,90 @@ class PatternTest {
     // ════════════════════════════════════════════════════════════════
 
     @Nested
-    @DisplayName("Factory Pattern")
+    @DisplayName("Factory Pattern - Demo")
     class FactoryTests {
 
         @Test
-        @DisplayName("Factory - tworzy Cutlass")
-        void factory_shouldCreateCutlass() {
+        @DisplayName("ShipFactory - tworzy Galleon")
+        void factory_shouldCreateGalleon() {
             // When
-            Weapon weapon = WeaponFactory.create("cutlass");
+            pl.przemekzagorski.training.patterns.factory.Ship ship =
+                pl.przemekzagorski.training.patterns.factory.ShipFactory.createShip(
+                    pl.przemekzagorski.training.patterns.factory.ShipFactory.ShipType.GALLEON, "HMS Victory");
 
             // Then
-            assertNotNull(weapon);
-            assertEquals("Cutlass (Szabla Piracka)", weapon.name());
-            assertEquals(20, weapon.damage());
-            assertEquals(1, weapon.range());
+            assertNotNull(ship);
+            assertTrue(ship instanceof pl.przemekzagorski.training.patterns.factory.Galleon);
+            assertEquals("HMS Victory", ship.getName());
         }
 
         @Test
-        @DisplayName("Factory - tworzy Pistol")
-        void factory_shouldCreatePistol() {
+        @DisplayName("ShipFactory - tworzy Frigate")
+        void factory_shouldCreateFrigate() {
             // When
-            Weapon weapon = WeaponFactory.create("pistol");
+            pl.przemekzagorski.training.patterns.factory.Ship ship =
+                pl.przemekzagorski.training.patterns.factory.ShipFactory.createShip(
+                    pl.przemekzagorski.training.patterns.factory.ShipFactory.ShipType.FRIGATE, "Sea Hawk");
 
             // Then
-            assertNotNull(weapon);
-            assertEquals("Flintlock Pistol", weapon.name());
-            assertEquals(35, weapon.damage());
-            assertEquals(5, weapon.range());
+            assertNotNull(ship);
+            assertTrue(ship instanceof pl.przemekzagorski.training.patterns.factory.Frigate);
         }
 
         @Test
-        @DisplayName("Factory - tworzy Cannon")
-        void factory_shouldCreateCannon() {
+        @DisplayName("ShipFactory - tworzy Sloop")
+        void factory_shouldCreateSloop() {
             // When
-            Weapon weapon = WeaponFactory.create("cannon");
+            pl.przemekzagorski.training.patterns.factory.Ship ship =
+                pl.przemekzagorski.training.patterns.factory.ShipFactory.createShip(
+                    pl.przemekzagorski.training.patterns.factory.ShipFactory.ShipType.SLOOP, "Swift Wind");
 
             // Then
-            assertEquals(100, weapon.damage());
-            assertEquals(50, weapon.range());
+            assertNotNull(ship);
+            assertTrue(ship instanceof pl.przemekzagorski.training.patterns.factory.Sloop);
         }
 
         @Test
-        @DisplayName("Factory - alias 'sword' tworzy Cutlass")
-        void factory_shouldHandleAliases() {
+        @DisplayName("ShipFactory - tworzy statek ze String")
+        void factory_shouldCreateFromString() {
             // When
-            Weapon sword = WeaponFactory.create("sword");
-            Weapon cutlass = WeaponFactory.create("cutlass");
+            pl.przemekzagorski.training.patterns.factory.Ship galleon =
+                pl.przemekzagorski.training.patterns.factory.ShipFactory.createShip("galleon", "Black Pearl");
+            pl.przemekzagorski.training.patterns.factory.Ship frigate =
+                pl.przemekzagorski.training.patterns.factory.ShipFactory.createShip("frigate", "Flying Dutchman");
+            pl.przemekzagorski.training.patterns.factory.Ship sloop =
+                pl.przemekzagorski.training.patterns.factory.ShipFactory.createShip("sloop", "Interceptor");
 
             // Then
-            assertEquals(sword.name(), cutlass.name());
+            assertTrue(galleon instanceof pl.przemekzagorski.training.patterns.factory.Galleon);
+            assertTrue(frigate instanceof pl.przemekzagorski.training.patterns.factory.Frigate);
+            assertTrue(sloop instanceof pl.przemekzagorski.training.patterns.factory.Sloop);
         }
 
         @Test
-        @DisplayName("Factory - nieznany typ rzuca wyjątek")
+        @DisplayName("ShipFactory - semantyczne metody")
+        void factory_shouldHaveSemanticMethods() {
+            // When
+            pl.przemekzagorski.training.patterns.factory.Ship battleship =
+                pl.przemekzagorski.training.patterns.factory.ShipFactory.createBattleship("Warship");
+            pl.przemekzagorski.training.patterns.factory.Ship scout =
+                pl.przemekzagorski.training.patterns.factory.ShipFactory.createScoutShip("Scout");
+            pl.przemekzagorski.training.patterns.factory.Ship trade =
+                pl.przemekzagorski.training.patterns.factory.ShipFactory.createTradeShip("Merchant");
+
+            // Then
+            assertNotNull(battleship);
+            assertNotNull(scout);
+            assertNotNull(trade);
+        }
+
+        @Test
+        @DisplayName("ShipFactory - nieznany typ rzuca wyjątek")
         void factory_shouldThrowForUnknownType() {
             // When/Then
-            Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-                WeaponFactory.create("musket");
+            assertThrows(IllegalArgumentException.class, () -> {
+                pl.przemekzagorski.training.patterns.factory.ShipFactory.createShip("submarine", "Nautilus");
             });
-
-            assertTrue(exception.getMessage().contains("Unknown weapon"));
-        }
-
-        @Test
-        @DisplayName("Factory - case insensitive")
-        void factory_shouldBeCaseInsensitive() {
-            // When
-            Weapon upper = WeaponFactory.create("CUTLASS");
-            Weapon lower = WeaponFactory.create("cutlass");
-            Weapon mixed = WeaponFactory.create("Cutlass");
-
-            // Then - wszystkie powinny być tego samego typu
-            assertEquals(upper.name(), lower.name());
-            assertEquals(lower.name(), mixed.name());
         }
     }
 
@@ -149,96 +175,88 @@ class PatternTest {
     // ════════════════════════════════════════════════════════════════
 
     @Nested
-    @DisplayName("Builder Pattern")
+    @DisplayName("Builder Pattern - Demo")
     class BuilderTests {
 
         @Test
-        @DisplayName("Builder - minimalne zamówienie (tylko drink)")
-        void builder_shouldCreateMinimalOrder() {
+        @DisplayName("PirateShip Builder - minimalny statek (tylko nazwa)")
+        void builder_shouldCreateMinimalShip() {
             // When
-            TavernOrder order = TavernOrder.builder("Rum").build();
+            PirateShip ship = new PirateShip.Builder("Black Pearl").build();
 
             // Then
-            assertEquals("Rum", order.getDrink());
-            assertNull(order.getFood());
-            assertNull(order.getDessert());
-            assertFalse(order.isToGo());
-            assertEquals(0, order.getTableNumber());
+            assertEquals("Black Pearl", ship.getName());
+            assertEquals("Unknown", ship.getType());
+            assertEquals(0, ship.getCannons());
+            assertEquals(10, ship.getCrewCapacity());
         }
 
         @Test
-        @DisplayName("Builder - pełne zamówienie")
-        void builder_shouldCreateFullOrder() {
+        @DisplayName("PirateShip Builder - pełny statek")
+        void builder_shouldCreateFullShip() {
             // When
-            TavernOrder order = TavernOrder.builder("Grog")
-                    .food("Fish and Chips")
-                    .dessert("Parrot Cake")
-                    .tableNumber(7)
-                    .toGo(false)
+            PirateShip ship = new PirateShip.Builder("Queen Anne's Revenge")
+                    .type("Galleon")
+                    .cannons(40)
+                    .crewCapacity(200)
+                    .withJollyRoger()
+                    .captain("Blackbeard")
+                    .cargoCapacity(500)
+                    .homePort("Nassau")
                     .build();
 
             // Then
-            assertEquals("Grog", order.getDrink());
-            assertEquals("Fish and Chips", order.getFood());
-            assertEquals("Parrot Cake", order.getDessert());
-            assertEquals(7, order.getTableNumber());
-            assertFalse(order.isToGo());
+            assertEquals("Queen Anne's Revenge", ship.getName());
+            assertEquals("Galleon", ship.getType());
+            assertEquals(40, ship.getCannons());
+            assertEquals(200, ship.getCrewCapacity());
+            assertTrue(ship.hasJollyRoger());
+            assertEquals("Blackbeard", ship.getCaptainName());
+            assertEquals(500, ship.getCargoCapacity());
+            assertEquals("Nassau", ship.getHomePort());
         }
 
         @Test
-        @DisplayName("Builder - zamówienie na wynos")
-        void builder_shouldCreateToGoOrder() {
-            // When
-            TavernOrder order = TavernOrder.builder("Whiskey")
-                    .food("Beef Jerky")
-                    .toGo(true)
-                    .build();
-
-            // Then
-            assertTrue(order.isToGo());
-        }
-
-        @Test
-        @DisplayName("Builder - drink jest wymagany")
-        void builder_shouldRequireDrink() {
-            // When/Then
-            assertThrows(IllegalArgumentException.class, () -> {
-                TavernOrder.builder(null).build();
-            });
-
-            assertThrows(IllegalArgumentException.class, () -> {
-                TavernOrder.builder("   ").build();
-            });
-        }
-
-        @Test
-        @DisplayName("Builder - immutability (obiekt nie może być zmieniony)")
-        void builder_shouldCreateImmutableObject() {
-            // Given
-            TavernOrder order = TavernOrder.builder("Ale")
-                    .food("Stew")
-                    .build();
-
-            // Then - gettery nie pozwalają na modyfikację
-            // (TavernOrder nie ma setterów, jest immutable)
-            assertEquals("Ale", order.getDrink());
-            assertEquals("Stew", order.getFood());
-        }
-
-        @Test
-        @DisplayName("Builder - fluent API chain")
+        @DisplayName("PirateShip Builder - fluent API")
         void builder_shouldSupportFluentChaining() {
             // When - jedna linia z chainowaniem
-            TavernOrder order = TavernOrder.builder("Mead")
-                    .food("Roast")
-                    .dessert("Tart")
-                    .tableNumber(3)
-                    .toGo(false)
+            PirateShip ship = new PirateShip.Builder("Flying Dutchman")
+                    .type("Ghost Ship")
+                    .cannons(50)
+                    .captain("Davy Jones")
                     .build();
 
             // Then
-            assertNotNull(order);
-            assertEquals("Mead", order.getDrink());
+            assertNotNull(ship);
+            assertEquals("Flying Dutchman", ship.getName());
+            assertEquals("Davy Jones", ship.getCaptainName());
+        }
+
+        @Test
+        @DisplayName("PirateShip Builder - nazwa jest wymagana")
+        void builder_shouldRequireName() {
+            // When/Then
+            assertThrows(IllegalStateException.class, () -> {
+                new PirateShip.Builder(null).build();
+            });
+
+            assertThrows(IllegalStateException.class, () -> {
+                new PirateShip.Builder("   ").build();
+            });
+        }
+
+        @Test
+        @DisplayName("PirateShip - immutability (brak setterów)")
+        void builder_shouldCreateImmutableObject() {
+            // Given
+            PirateShip ship = new PirateShip.Builder("Interceptor")
+                    .cannons(20)
+                    .build();
+
+            // Then - tylko gettery, brak setterów
+            assertEquals("Interceptor", ship.getName());
+            assertEquals(20, ship.getCannons());
+            // Nie ma metod setCannons(), setName() - obiekt jest immutable
         }
     }
 
@@ -247,124 +265,171 @@ class PatternTest {
     // ════════════════════════════════════════════════════════════════
 
     @Nested
-    @DisplayName("Strategy Pattern")
+    @DisplayName("Strategy Pattern - Demo")
     class StrategyTests {
 
         @Test
-        @DisplayName("Strategy - zmiana strategii w runtime")
-        void strategy_shouldAllowRuntimeChange() {
+        @DisplayName("BattleShip - domyślna strategia to CannonAttack")
+        void battleShip_shouldHaveDefaultStrategy() {
             // Given
-            NavigableShip ship = new NavigableShip("Black Pearl");
-
-            // When/Then - początkowa strategia
-            ship.setNavigationStrategy(new CompassNavigation());
-            // Nie możemy łatwo zweryfikować output, ale metoda powinna się wykonać bez błędu
-
-            // Zmiana strategii
-            ship.setNavigationStrategy(new StarNavigation());
-            // Ponownie - działa bez błędu
-
-            ship.setNavigationStrategy(new MapNavigation());
-            // I znowu zmiana
-        }
-
-        @Test
-        @DisplayName("Strategy - różne speed ratings")
-        void strategy_shouldHaveDifferentSpeedRatings() {
-            // Given
-            NavigationStrategy stars = new StarNavigation();
-            NavigationStrategy compass = new CompassNavigation();
-            NavigationStrategy map = new MapNavigation();
-
-            // Then - mapa najszybsza, gwiazdy najwolniejsze
-            assertTrue(stars.speedRating() < compass.speedRating());
-            assertTrue(compass.speedRating() < map.speedRating());
-        }
-
-        @Test
-        @DisplayName("Strategy - każda ma unikalną nazwę")
-        void strategy_shouldHaveUniqueNames() {
-            // Given
-            NavigationStrategy stars = new StarNavigation();
-            NavigationStrategy compass = new CompassNavigation();
-            NavigationStrategy map = new MapNavigation();
-
-            // Then
-            assertNotEquals(stars.methodName(), compass.methodName());
-            assertNotEquals(compass.methodName(), map.methodName());
-            assertNotEquals(stars.methodName(), map.methodName());
-        }
-
-        @Test
-        @DisplayName("Strategy - statek wykonuje nawigację")
-        void strategy_shipShouldNavigate() {
-            // Given
-            NavigableShip ship = new NavigableShip("Flying Dutchman");
-            ship.setNavigationStrategy(new CompassNavigation());
+            pl.przemekzagorski.training.patterns.strategy.BattleShip ship =
+                new pl.przemekzagorski.training.patterns.strategy.BattleShip("Black Pearl");
 
             // When/Then - nie rzuca wyjątku
-            assertDoesNotThrow(() -> ship.navigate("Tortuga", "Nassau"));
+            assertDoesNotThrow(() -> ship.attack("HMS Interceptor"));
+        }
+
+        @Test
+        @DisplayName("BattleShip - zmiana strategii w runtime")
+        void battleShip_shouldAllowStrategyChange() {
+            // Given
+            pl.przemekzagorski.training.patterns.strategy.BattleShip ship =
+                new pl.przemekzagorski.training.patterns.strategy.BattleShip("Queen Anne's Revenge");
+
+            // When - zmiana strategii
+            ship.setAttackStrategy(new pl.przemekzagorski.training.patterns.strategy.BoardingAttack());
+            assertDoesNotThrow(() -> ship.attack("Merchant Ship"));
+
+            ship.setAttackStrategy(new pl.przemekzagorski.training.patterns.strategy.RammingAttack());
+            assertDoesNotThrow(() -> ship.attack("Enemy Ship"));
+
+            ship.setAttackStrategy(new pl.przemekzagorski.training.patterns.strategy.CannonAttack());
+            assertDoesNotThrow(() -> ship.attack("Fort"));
+        }
+
+        @Test
+        @DisplayName("AttackStrategy - różne strategie mają różne zachowania")
+        void attackStrategies_shouldHaveDifferentBehaviors() {
+            // Given
+            pl.przemekzagorski.training.patterns.strategy.AttackStrategy cannon =
+                new pl.przemekzagorski.training.patterns.strategy.CannonAttack();
+            pl.przemekzagorski.training.patterns.strategy.AttackStrategy boarding =
+                new pl.przemekzagorski.training.patterns.strategy.BoardingAttack();
+            pl.przemekzagorski.training.patterns.strategy.AttackStrategy ramming =
+                new pl.przemekzagorski.training.patterns.strategy.RammingAttack();
+
+            // When/Then - wszystkie działają bez błędu
+            assertDoesNotThrow(() -> cannon.attack("Attacker", "Target"));
+            assertDoesNotThrow(() -> boarding.attack("Attacker", "Target"));
+            assertDoesNotThrow(() -> ramming.attack("Attacker", "Target"));
+        }
+
+        @Test
+        @DisplayName("BattleShip - nazwa statku jest przechowywana")
+        void battleShip_shouldStoreName() {
+            // Given
+            pl.przemekzagorski.training.patterns.strategy.BattleShip ship =
+                new pl.przemekzagorski.training.patterns.strategy.BattleShip("Flying Dutchman");
+
+            // Then
+            assertEquals("Flying Dutchman", ship.getName());
         }
     }
 
     // ════════════════════════════════════════════════════════════════
-    // TESTY MINI-PROJEKT (Bonus)
+    // TESTY OBSERVER
     // ════════════════════════════════════════════════════════════════
 
     @Nested
-    @DisplayName("Mini-Project (Singleton + Builder + Factory)")
-    class MiniProjectTests {
+    @DisplayName("Observer Pattern - Demo")
+    class ObserverTests {
 
         @Test
-        @DisplayName("CrewMember Builder - tworzy członka załogi")
-        void crewMember_shouldBeCreatedByBuilder() {
-            // When
-            CrewMember member = CrewMember.builder("Jack")
-                    .role("Captain")
-                    .experience(100)
-                    .weapon("Cutlass")
-                    .skill("Navigation")
-                    .skill("Sword fighting")
-                    .build();
+        @DisplayName("Captain - może dodawać obserwatorów")
+        void captain_shouldAddObservers() {
+            // Given
+            pl.przemekzagorski.training.patterns.observer.Captain captain =
+                new pl.przemekzagorski.training.patterns.observer.Captain("Blackbeard");
+            pl.przemekzagorski.training.patterns.observer.Cook cook =
+                new pl.przemekzagorski.training.patterns.observer.Cook("Cookie");
+            pl.przemekzagorski.training.patterns.observer.Gunner gunner =
+                new pl.przemekzagorski.training.patterns.observer.Gunner("Boom");
+            pl.przemekzagorski.training.patterns.observer.Navigator navigator =
+                new pl.przemekzagorski.training.patterns.observer.Navigator("Compass");
 
-            // Then
-            assertNotNull(member);
-            assertTrue(member.toString().contains("Jack"));
-            assertTrue(member.toString().contains("Captain"));
+            // When/Then - nie rzuca wyjątku
+            assertDoesNotThrow(() -> {
+                captain.addObserver(cook);
+                captain.addObserver(gunner);
+                captain.addObserver(navigator);
+            });
         }
 
         @Test
-        @DisplayName("RoleFactory - tworzy kapitana z predefiniowaną konfiguracją")
-        void roleFactory_shouldCreateCaptain() {
+        @DisplayName("Captain - powiadamia obserwatorów o wydarzeniu")
+        void captain_shouldNotifyObservers() {
+            // Given
+            pl.przemekzagorski.training.patterns.observer.Captain captain =
+                new pl.przemekzagorski.training.patterns.observer.Captain("Jack Sparrow");
+            pl.przemekzagorski.training.patterns.observer.Cook cook =
+                new pl.przemekzagorski.training.patterns.observer.Cook("Cookie");
+
+            captain.addObserver(cook);
+
+            // When/Then - nie rzuca wyjątku
+            assertDoesNotThrow(() -> captain.announce("TREASURE_FOUND", "Gold coins!"));
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // TESTY DECORATOR
+    // ════════════════════════════════════════════════════════════════
+
+    @Nested
+    @DisplayName("Decorator Pattern - Demo")
+    class DecoratorTests {
+
+        @Test
+        @DisplayName("BasicShip - podstawowy statek")
+        void basicShip_shouldWork() {
+            // Given
+            pl.przemekzagorski.training.patterns.decorator.Ship ship =
+                new pl.przemekzagorski.training.patterns.decorator.BasicShip("Sea Dog");
+
             // When
-            CrewMember captain = RoleFactory.createCaptain("Barbossa");
+            String description = ship.getDescription();
+            int cost = ship.getCost();
 
             // Then
-            assertNotNull(captain);
-            assertTrue(captain.toString().contains("Barbossa"));
-            assertTrue(captain.toString().contains("Captain"));
-            assertTrue(captain.toString().contains("Cutlass"));
+            assertNotNull(description);
+            assertTrue(cost > 0);
         }
 
         @Test
-        @DisplayName("RoleFactory - tworzy kucharza")
-        void roleFactory_shouldCreateCook() {
-            // When
-            CrewMember cook = RoleFactory.createCook("Cookie");
+        @DisplayName("Decorator - dodaje funkcjonalność")
+        void decorator_shouldAddFunctionality() {
+            // Given
+            pl.przemekzagorski.training.patterns.decorator.Ship ship =
+                new pl.przemekzagorski.training.patterns.decorator.BasicShip("Sea Dog");
+
+            // When - dodajemy dekoratory
+            ship = new pl.przemekzagorski.training.patterns.decorator.ArmorPlating(ship);
+            ship = new pl.przemekzagorski.training.patterns.decorator.CannonUpgrade(ship);
+            ship = new pl.przemekzagorski.training.patterns.decorator.FastSails(ship);
 
             // Then
-            assertTrue(cook.toString().contains("Cook"));
-            assertTrue(cook.toString().contains("Knife"));
+            String description = ship.getDescription();
+            assertTrue(description.contains("Wzmocniony kadłub") || description.contains("Armor"));
+            assertTrue(description.contains("Dodatkowe armaty") || description.contains("Cannon"));
+            assertTrue(description.contains("Szybkie żagle") || description.contains("Sails"));
         }
 
         @Test
-        @DisplayName("RoleFactory - tworzy marynarza")
-        void roleFactory_shouldCreateSailor() {
+        @DisplayName("Decorator - zwiększa koszt")
+        void decorator_shouldIncreaseCost() {
+            // Given
+            pl.przemekzagorski.training.patterns.decorator.Ship basicShip =
+                new pl.przemekzagorski.training.patterns.decorator.BasicShip("Sea Dog");
+            int basicCost = basicShip.getCost();
+
             // When
-            CrewMember sailor = RoleFactory.createSailor("Will");
+            pl.przemekzagorski.training.patterns.decorator.Ship decoratedShip =
+                new pl.przemekzagorski.training.patterns.decorator.ArmorPlating(
+                    new pl.przemekzagorski.training.patterns.decorator.CannonUpgrade(basicShip));
+            int decoratedCost = decoratedShip.getCost();
 
             // Then
-            assertTrue(sailor.toString().contains("Sailor"));
+            assertTrue(decoratedCost > basicCost);
         }
     }
 
@@ -375,24 +440,33 @@ class PatternTest {
     @Test
     @DisplayName("Integracja - pełen workflow z wieloma wzorcami")
     void integration_shouldWorkWithMultiplePatterns() {
-        // Singleton - konfiguracja
-        AppConfig config = AppConfig.INSTANCE;
-        assertNotNull(config.getDatabaseUrl());
+        // Singleton - Captain
+        pl.przemekzagorski.training.patterns.singleton.Captain captain =
+            pl.przemekzagorski.training.patterns.singleton.Captain.getInstance();
+        assertNotNull(captain.getName());
 
-        // Factory - bronie
-        Weapon weapon1 = WeaponFactory.create("cutlass");
-        Weapon weapon2 = WeaponFactory.create("pistol");
-        assertNotEquals(weapon1.damage(), weapon2.damage());
+        // Factory - statki
+        pl.przemekzagorski.training.patterns.factory.Ship galleon =
+            pl.przemekzagorski.training.patterns.factory.ShipFactory.createShip(
+                pl.przemekzagorski.training.patterns.factory.ShipFactory.ShipType.GALLEON, "Victory");
+        pl.przemekzagorski.training.patterns.factory.Ship sloop =
+            pl.przemekzagorski.training.patterns.factory.ShipFactory.createShip(
+                pl.przemekzagorski.training.patterns.factory.ShipFactory.ShipType.SLOOP, "Swift");
+        assertNotNull(galleon);
+        assertNotNull(sloop);
 
-        // Builder - zamówienie
-        TavernOrder order = TavernOrder.builder("Rum")
-                .food("Fish")
+        // Builder - PirateShip
+        PirateShip pirateShip = new PirateShip.Builder("Black Pearl")
+                .type("Galleon")
+                .cannons(32)
+                .captain("Jack Sparrow")
                 .build();
-        assertEquals("Rum", order.getDrink());
+        assertEquals("Black Pearl", pirateShip.getName());
 
-        // Strategy - nawigacja
-        NavigableShip ship = new NavigableShip("Queen Anne's Revenge");
-        ship.setNavigationStrategy(new MapNavigation());
-        assertDoesNotThrow(() -> ship.navigate("Port Royal", "Tortuga"));
+        // Strategy - BattleShip
+        pl.przemekzagorski.training.patterns.strategy.BattleShip battleShip =
+            new pl.przemekzagorski.training.patterns.strategy.BattleShip("Queen Anne's Revenge");
+        battleShip.setAttackStrategy(new pl.przemekzagorski.training.patterns.strategy.CannonAttack());
+        assertDoesNotThrow(() -> battleShip.attack("Enemy"));
     }
 }
