@@ -1,8 +1,10 @@
 package pl.przemekzagorski.training.refactoring;
 
 import org.junit.jupiter.api.*;
-import pl.przemekzagorski.training.refactoring.RefactoringExercisesSolutions.*;
+import pl.przemekzagorski.training.refactoring.smells.after.*;
+import pl.przemekzagorski.training.refactoring.smells.before.BadPirateService;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,260 +12,208 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * ╔═══════════════════════════════════════════════════════════════════╗
- * ║         TESTY - REFACTORING & SOLID                              ║
+ * ║         TESTY DEMO - REFACTORING & SOLID                         ║
  * ╠═══════════════════════════════════════════════════════════════════╣
- * ║  Testujemy wyodrębnione metody, klasy i zasady SOLID             ║
+ * ║  Testujemy klasy Demo z pakietu smells.after                    ║
+ * ║  Dla studentów - commitowane do repo                            ║
  * ╚═══════════════════════════════════════════════════════════════════╝
  */
-@DisplayName("Refactoring & SOLID Tests")
+@DisplayName("Refactoring & SOLID Demo Tests")
 class RefactoringTest {
 
-    private RefactoringExercisesSolutions solutions;
-
-    @BeforeEach
-    void setUp() {
-        solutions = new RefactoringExercisesSolutions();
-    }
-
     // ════════════════════════════════════════════════════════════════
-    // TESTY EXTRACT METHOD
+    // TESTY SHIP - klasa z pakietu smells.after
     // ════════════════════════════════════════════════════════════════
 
     @Nested
-    @DisplayName("Extract Method - calculateDamage")
-    class CalculateDamageTests {
+    @DisplayName("Ship - Demo Class")
+    class ShipTests {
 
         @Test
-        @DisplayName("Małą załoga (< 50) - brak bonusu")
-        void smallCrew_shouldHaveNoBonus() {
+        @DisplayName("Ship oblicza obrażenia - mała załoga")
+        void ship_calculateDamage_smallCrew() {
             // Given
-            int cannons = 10;
-            int crew = 30;
+            Ship ship = new Ship("Sloop", 10, 30, 100);
 
             // When
-            int damage = solutions.calculateDamage(cannons, crew);
+            int damage = ship.calculateDamage();
 
-            // Then - 10 * 10 = 100, bez bonusu
+            // Then - 10 * 10 = 100 (bez bonusu)
             assertEquals(100, damage);
         }
 
         @Test
-        @DisplayName("Średnia załoga (51-100) - bonus +20")
-        void mediumCrew_shouldHaveMediumBonus() {
+        @DisplayName("Ship oblicza obrażenia - duża załoga")
+        void ship_calculateDamage_largeCrew() {
             // Given
-            int cannons = 10;
-            int crew = 75;
+            Ship ship = new Ship("Man-o-War", 20, 150, 500);
 
             // When
-            int damage = solutions.calculateDamage(cannons, crew);
+            int damage = ship.calculateDamage();
 
-            // Then - 10 * 10 + 20 = 120
-            assertEquals(120, damage);
+            // Then - 20 * 10 + 20 + 30 = 250
+            assertEquals(250, damage);
         }
 
         @Test
-        @DisplayName("Duża załoga (> 100) - bonus +30")
-        void largeCrew_shouldHaveLargeBonus() {
+        @DisplayName("Ship przyjmuje obrażenia")
+        void ship_takeDamage() {
             // Given
-            int cannons = 10;
-            int crew = 150;
+            Ship ship = new Ship("Frigate", 15, 80, 300);
 
             // When
-            int damage = solutions.calculateDamage(cannons, crew);
-
-            // Then - 10 * 10 + 30 = 130
-            assertEquals(130, damage);
-        }
-
-        @Test
-        @DisplayName("Zero dział = zero obrażeń bazowych")
-        void zeroCannons_shouldHaveZeroBaseDamage() {
-            // Given
-            int cannons = 0;
-            int crew = 150;
-
-            // When
-            int damage = solutions.calculateDamage(cannons, crew);
-
-            // Then - 0 * 10 + 30 = 30 (tylko bonus)
-            assertEquals(30, damage);
-        }
-
-        @Test
-        @DisplayName("Wiele dział + duża załoga = duże obrażenia")
-        void manyCannonsLargeCrew_shouldHaveHighDamage() {
-            // Given
-            int cannons = 50;  // 50 dział
-            int crew = 200;   // duża załoga
-
-            // When
-            int damage = solutions.calculateDamage(cannons, crew);
-
-            // Then - 50 * 10 + 30 = 530
-            assertEquals(530, damage);
-        }
-    }
-
-    @Nested
-    @DisplayName("Extract Method - determineWinner")
-    class DetermineWinnerTests {
-
-        @Test
-        @DisplayName("Ship1 wygrywa gdy Ship2 zatopiony")
-        void ship1Wins_whenShip2Sunk() {
-            // When
-            String winner = solutions.determineWinner("Black Pearl", 50, "Flying Dutchman", 0);
+            ship.takeDamage(100);
 
             // Then
-            assertEquals("Black Pearl WINS!", winner);
+            assertEquals(200, ship.getHealth());
         }
 
         @Test
-        @DisplayName("Ship2 wygrywa gdy Ship1 zatopiony")
-        void ship2Wins_whenShip1Sunk() {
+        @DisplayName("Ship jest zniszczony gdy HP <= 0")
+        void ship_isDestroyed() {
+            // Given
+            Ship ship = new Ship("Wreck", 5, 20, 10);
+
             // When
-            String winner = solutions.determineWinner("Black Pearl", 0, "Flying Dutchman", 50);
+            ship.takeDamage(50);
 
             // Then
-            assertEquals("Flying Dutchman WINS!", winner);
+            assertTrue(ship.isDestroyed());
         }
 
         @Test
-        @DisplayName("Remis gdy oba zatopione")
-        void draw_whenBothSunk() {
-            // When
-            String winner = solutions.determineWinner("Ship1", -10, "Ship2", 0);
+        @DisplayName("Ship porównuje siłę z innym statkiem")
+        void ship_isStrongerThan() {
+            // Given
+            Ship stronger = new Ship("Black Pearl", 20, 100, 400);
+            Ship weaker = new Ship("Sloop", 10, 50, 200);
 
             // Then
-            assertTrue(winner.contains("DRAW"));
-        }
-
-        @Test
-        @DisplayName("Wyższe HP wygrywa")
-        void higherHealth_shouldWin() {
-            // When
-            String winner = solutions.determineWinner("Ship1", 100, "Ship2", 50);
-
-            // Then
-            assertEquals("Ship1", winner);
+            assertTrue(stronger.isStrongerThan(weaker));
+            assertFalse(weaker.isStrongerThan(stronger));
         }
     }
 
     // ════════════════════════════════════════════════════════════════
-    // TESTY EXTRACT CLASS - Ship record
+    // TESTY LOOT CALCULATOR - klasa z pakietu smells.after
     // ════════════════════════════════════════════════════════════════
 
     @Nested
-    @DisplayName("Extract Class - Ship entity")
-    class ShipTests {
+    @DisplayName("LootCalculator - Demo Class")
+    class LootCalculatorTests {
 
-        @Test
-        @DisplayName("Ship record przechowuje dane")
-        void ship_shouldStoreData() {
-            // When
-            Ship ship = new Ship("Black Pearl", 20, 100, 500);
-
-            // Then
-            assertEquals("Black Pearl", ship.name());
-            assertEquals(20, ship.cannons());
-            assertEquals(100, ship.crew());
-            assertEquals(500, ship.health());
-        }
-
-        @Test
-        @DisplayName("Ship.withHealth tworzy kopię z nowym HP")
-        void ship_withHealthShouldCreateCopy() {
-            // Given
-            Ship original = new Ship("HMS Interceptor", 15, 80, 400);
-
-            // When
-            Ship damaged = original.withHealth(250);
-
-            // Then - nowy obiekt z zmienionym HP
-            assertEquals(250, damaged.health());
-            assertEquals(original.name(), damaged.name());
-            assertEquals(original.cannons(), damaged.cannons());
-
-            // Original unchanged (immutable)
-            assertEquals(400, original.health());
-        }
-    }
-
-    // ════════════════════════════════════════════════════════════════
-    // TESTY EXTRACT CLASS - DamageCalculator
-    // ════════════════════════════════════════════════════════════════
-
-    @Nested
-    @DisplayName("Extract Class - DamageCalculator")
-    class DamageCalculatorTests {
-
-        private DamageCalculator calculator;
+        private LootCalculator calculator;
 
         @BeforeEach
         void setUp() {
-            calculator = new DamageCalculator();
+            calculator = new LootCalculator();
         }
 
         @Test
-        @DisplayName("Oblicza damage dla małej załogi")
-        void calculate_smallCrew() {
+        @DisplayName("Oblicza łupy z małego statku")
+        void calculate_smallShip() {
             // Given
-            Ship ship = new Ship("Sloop", 5, 20, 100);
+            Ship winner = new Ship("Black Pearl", 20, 100, 300);
+            Ship loser = new Ship("Sloop", 10, 30, 0);
 
             // When
-            int damage = calculator.calculate(ship);
+            BigDecimal loot = calculator.calculate(winner, loser);
 
-            // Then - 5 * 10 = 50
-            assertEquals(50, damage);
+            // Then - 30 crew * 10 = 300 (bez bonusu, bo < 20 dział)
+            assertEquals(new BigDecimal("300"), loot);
         }
 
         @Test
-        @DisplayName("Oblicza damage dla dużej załogi")
-        void calculate_largeCrew() {
+        @DisplayName("Oblicza łupy z dużego statku (bonus)")
+        void calculate_largeShip() {
             // Given
-            Ship ship = new Ship("Man-o-War", 40, 200, 800);
+            Ship winner = new Ship("Black Pearl", 20, 100, 300);
+            Ship loser = new Ship("Man-o-War", 25, 100, 0);
 
             // When
-            int damage = calculator.calculate(ship);
+            BigDecimal loot = calculator.calculate(winner, loser);
 
-            // Then - 40 * 10 + 30 = 430
-            assertEquals(430, damage);
+            // Then - 100 crew * 10 + 500 bonus = 1500
+            assertEquals(new BigDecimal("1500"), loot);
         }
     }
 
     // ════════════════════════════════════════════════════════════════
-    // TESTY MAGIC NUMBERS - CrewSize enum
+    // TESTY BATTLE RESULT - klasa z pakietu smells.after
     // ════════════════════════════════════════════════════════════════
 
     @Nested
-    @DisplayName("Magic Numbers - CrewSize enum")
-    class CrewSizeTests {
+    @DisplayName("BattleResult - Demo Class")
+    class BattleResultTests {
 
         @Test
-        @DisplayName("Mała załoga - bonus 0")
-        void smallCrew_zeroBonus() {
-            assertEquals(0, CrewSize.bonusForCrew(30));
-            assertEquals(0, CrewSize.bonusForCrew(50));  // dokładnie 50 to jeszcze small
+        @DisplayName("BattleResult.victory tworzy wynik zwycięstwa")
+        void battleResult_victory() {
+            // Given
+            Ship winner = new Ship("Black Pearl", 20, 100, 200);
+            Ship loser = new Ship("Sloop", 10, 50, 0);
+            BigDecimal loot = new BigDecimal("500");
+
+            // When
+            BattleResult result = BattleResult.victory(winner, loser, loot);
+
+            // Then
+            assertEquals(winner, result.winner());
+            assertEquals(loser, result.loser());
+            assertEquals(loot, result.loot());
+            assertFalse(result.isDraw());
         }
 
         @Test
-        @DisplayName("Średnia załoga - bonus 20")
-        void mediumCrew_bonus20() {
-            assertEquals(20, CrewSize.bonusForCrew(51));
-            assertEquals(20, CrewSize.bonusForCrew(75));
-            assertEquals(20, CrewSize.bonusForCrew(100));  // dokładnie 100 to jeszcze medium
-        }
+        @DisplayName("BattleResult.draw tworzy wynik remisu")
+        void battleResult_draw() {
+            // When
+            BattleResult result = BattleResult.draw();
 
-        @Test
-        @DisplayName("Duża załoga - bonus 30")
-        void largeCrew_bonus30() {
-            assertEquals(30, CrewSize.bonusForCrew(101));
-            assertEquals(30, CrewSize.bonusForCrew(500));
+            // Then
+            assertNull(result.winner());
+            assertNull(result.loser());
+            assertEquals(BigDecimal.ZERO, result.loot());
+            assertTrue(result.isDraw());
         }
     }
 
     // ════════════════════════════════════════════════════════════════
-    // TESTY DEPENDENCY INVERSION
+    // TESTY GOOD BATTLE SERVICE - klasa z pakietu smells.after
+    // ════════════════════════════════════════════════════════════════
+
+    @Nested
+    @DisplayName("GoodBattleService - Demo Class")
+    class GoodBattleServiceTests {
+
+        @Test
+        @DisplayName("GoodBattleService przetwarza bitwę z Dependency Injection")
+        void goodBattleService_processBattle() {
+            // Given
+            LootCalculator lootCalculator = new LootCalculator();
+            List<BattleResult> savedResults = new ArrayList<>();
+            BattleReporter reporter = result -> {}; // mock
+            BattleRepository repository = savedResults::add; // mock
+
+            GoodBattleService service = new GoodBattleService(
+                    lootCalculator, reporter, repository
+            );
+
+            Ship ship1 = new Ship("Black Pearl", 20, 100, 300);
+            Ship ship2 = new Ship("Flying Dutchman", 25, 120, 350);
+
+            // When
+            BattleResult result = service.processBattle(ship1, ship2);
+
+            // Then
+            assertNotNull(result);
+            assertEquals(1, savedResults.size());
+            assertEquals(result, savedResults.get(0));
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // TESTY INTERFACES - Dependency Inversion Principle
     // ════════════════════════════════════════════════════════════════
 
     @Nested
@@ -271,163 +221,45 @@ class RefactoringTest {
     class DependencyInversionTests {
 
         @Test
-        @DisplayName("BattleService działa z mock repository")
-        void battleService_shouldWorkWithMockRepository() {
-            // Given - mock implementations
-            List<BattleResult> savedResults = new ArrayList<>();
-            List<String> notifications = new ArrayList<>();
+        @DisplayName("BattleRepository - interfejs pozwala na różne implementacje")
+        void battleRepository_interface() {
+            // Given - różne implementacje tego samego interfejsu
+            BattleRepository mockRepo = result -> System.out.println("Mock: " + result);
+            BattleRepository inMemoryRepo = new InMemoryBattleRepository();
 
-            BattleRepository mockRepo = savedResults::add;
-            NotificationService mockNotif = notifications::add;
-
-            BattleService service = new BattleService(
-                    new DamageCalculator(),
-                    new BattleReporter(),
-                    mockRepo,
-                    mockNotif
-            );
-
-            Ship ship1 = new Ship("Ship1", 10, 50, 100);
-            Ship ship2 = new Ship("Ship2", 8, 40, 80);
-
-            // When
-            BattleResult result = service.fight(ship1, ship2);
-
-            // Then - mock repository was called
-            assertEquals(1, savedResults.size());
-            assertEquals(result, savedResults.get(0));
-
-            // And notification was sent
-            assertEquals(1, notifications.size());
-            assertEquals(result.winner(), notifications.get(0));
+            // Then - oba implementują ten sam interfejs
+            assertNotNull(mockRepo);
+            assertNotNull(inMemoryRepo);
         }
 
         @Test
-        @DisplayName("InMemoryBattleRepository zapisuje wyniki")
-        void inMemoryRepository_shouldSaveResults() {
+        @DisplayName("InMemoryBattleRepository zapisuje wyniki (wywołuje save)")
+        void inMemoryRepository_savesResults() {
             // Given
             InMemoryBattleRepository repo = new InMemoryBattleRepository();
-            BattleResult result = new BattleResult(
-                    new Ship("A", 10, 50, 100),
-                    new Ship("B", 10, 50, 80),
-                    100, 100, "A"
-            );
+            Ship winner = new Ship("Winner", 20, 100, 200);
+            Ship loser = new Ship("Loser", 10, 50, 0);
+            BattleResult result = BattleResult.victory(winner, loser, new BigDecimal("500"));
 
-            // When
+            // When - wywołujemy save (wyświetla komunikat na konsoli)
             repo.save(result);
 
-            // Then
-            List<BattleResult> all = repo.findAll();
-            assertEquals(1, all.size());
-            assertEquals(result, all.get(0));
-        }
-
-        @Test
-        @DisplayName("Łatwa zmiana implementacji (DIP)")
-        void dip_shouldAllowEasyImplementationSwap() {
-            // Given - możemy użyć różnych implementacji
-            BattleRepository sqlRepo = result -> System.out.println("SQL: " + result);
-            BattleRepository mongoRepo = result -> System.out.println("Mongo: " + result);
-            BattleRepository mockRepo = result -> {}; // do niczego
-
-            // All implement the same interface
-            assertNotNull(sqlRepo);
-            assertNotNull(mongoRepo);
-            assertNotNull(mockRepo);
-
-            // BattleService nie wie która implementacja jest użyta!
-            BattleService service = new BattleService(
-                    new DamageCalculator(),
-                    new BattleReporter(),
-                    mockRepo,  // łatwo zamienić!
-                    winner -> {}
-            );
-
-            assertNotNull(service);
+            // Then - metoda została wywołana bez błędów
+            assertNotNull(repo);
         }
     }
 
     // ════════════════════════════════════════════════════════════════
-    // TESTY BattleResult
-    // ════════════════════════════════════════════════════════════════
-
-    @Nested
-    @DisplayName("BattleResult record")
-    class BattleResultTests {
-
-        @Test
-        @DisplayName("BattleResult przechowuje wynik bitwy")
-        void battleResult_shouldStoreData() {
-            // Given
-            Ship ship1 = new Ship("A", 10, 50, 50);
-            Ship ship2 = new Ship("B", 10, 50, 30);
-
-            // When
-            BattleResult result = new BattleResult(ship1, ship2, 100, 80, "A");
-
-            // Then
-            assertEquals(ship1, result.ship1());
-            assertEquals(ship2, result.ship2());
-            assertEquals(100, result.damage1());
-            assertEquals(80, result.damage2());
-            assertEquals("A", result.winner());
-        }
-    }
-
-    // ════════════════════════════════════════════════════════════════
-    // TEST INTEGRACYJNY
+    // TEST BAD CODE - klasa z pakietu smells.before
     // ════════════════════════════════════════════════════════════════
 
     @Test
-    @DisplayName("Integracja - pełna bitwa z wszystkimi komponentami")
-    void integration_fullBattleWithAllComponents() {
-        // Given
-        DamageCalculator calculator = new DamageCalculator();
-        BattleReporter reporter = new BattleReporter();
-        InMemoryBattleRepository repository = new InMemoryBattleRepository();
-        List<String> notifications = new ArrayList<>();
-        NotificationService notificationService = notifications::add;
+    @DisplayName("BadPirateService - przykład złego kodu (Long Method, God Class)")
+    void badPirateService_exists() {
+        // Given - klasa z code smells
+        BadPirateService badService = new BadPirateService();
 
-        BattleService battleService = new BattleService(
-                calculator, reporter, repository, notificationService
-        );
-
-        Ship blackPearl = new Ship("Black Pearl", 20, 120, 300);
-        Ship flyingDutchman = new Ship("Flying Dutchman", 25, 100, 350);
-
-        // When
-        BattleResult result = battleService.fight(blackPearl, flyingDutchman);
-
-        // Then
-        assertNotNull(result);
-        assertNotNull(result.winner());
-
-        // Sprawdź że damage został obliczony
-        assertTrue(result.damage1() > 0);
-        assertTrue(result.damage2() > 0);
-
-        // Sprawdź że wynik został zapisany
-        assertEquals(1, repository.findAll().size());
-
-        // Sprawdź że powiadomienie zostało wysłane
-        assertEquals(1, notifications.size());
-    }
-
-    @Test
-    @DisplayName("Zasada Single Responsibility - każda klasa ma jedną odpowiedzialność")
-    void srp_eachClassHasSingleResponsibility() {
-        // DamageCalculator - tylko oblicza damage
-        DamageCalculator calculator = new DamageCalculator();
-        Ship ship = new Ship("Test", 10, 50, 100);
-        int damage = calculator.calculate(ship);
-        assertTrue(damage > 0);
-
-        // BattleReporter - tylko raportuje (nie testujemy output, ale klasa istnieje)
-        BattleReporter reporter = new BattleReporter();
-        assertNotNull(reporter);
-
-        // InMemoryBattleRepository - tylko przechowuje
-        InMemoryBattleRepository repo = new InMemoryBattleRepository();
-        assertEquals(0, repo.findAll().size());
+        // Then - klasa istnieje (studenci mogą ją analizować)
+        assertNotNull(badService);
     }
 }

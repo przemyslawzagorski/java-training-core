@@ -32,3 +32,4 @@ test-output/
 
 # Solutions (for trainer only - not for students)
 **/PatternSolutionsTest.java
+**/RefactoringSolutionsTest.java
