@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="m01-sql-basics" />
+        <module name="m09-spring-data" />
+        <module name="m03-refactoring" />
+        <module name="m03-jdbc-crud" />
+        <module name="m08-testing-persistence" />
+        <module name="m05-entity-lifecycle" />
+        <module name="m04-jpa-intro" />
+        <module name="m02-design-patterns" />
+        <module name="m01-hibernate-advanced" />
+        <module name="m02-jdbc-connection" />
+        <module name="m07-hql-queries" />
+        <module name="m06-relations" />
+        <module name="m04-tools-and-ai" />
+      </profile>
+    </annotationProcessing>
+  </component>
+</project>

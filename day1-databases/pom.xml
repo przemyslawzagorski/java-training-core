@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>pl.przemekzagorski</groupId>
+        <artifactId>java-training-core</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>day1-databases</artifactId>
+    <packaging>pom</packaging>
+
+    <name>Dzien 1: Bazy danych</name>
+    <description>JDBC, JPA, Hibernate - podstawy pracy z bazami danych</description>
+
+    <modules>
+        <module>m01-sql-basics</module>
+        <module>m02-jdbc-connection</module>
+        <module>m03-jdbc-crud</module>
+        <module>m04-jpa-intro</module>
+        <module>m05-entity-lifecycle</module>
+        <module>m06-relations</module>
+        <module>m07-hql-queries</module>
+        <module>m08-testing-persistence</module>
+        <module>m09-spring-data</module>
+    </modules>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+        </dependency>
+    </dependencies>
+
+</project>
+

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Encoding">
+    <file url="file://$PROJECT_DIR$/day1-databases/m01-sql-basics/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/day1-databases/m01-sql-basics/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/day1-databases/m02-jdbc-connection/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/day1-databases/m02-jdbc-connection/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/day1-databases/m03-jdbc-crud/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/day1-databases/m03-jdbc-crud/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/day1-databases/m04-jpa-intro/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/day1-databases/m04-jpa-intro/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/day1-databases/m05-entity-lifecycle/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/day1-databases/m05-entity-lifecycle/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/day1-databases/m06-relations/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/day1-databases/m06-relations/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/day1-databases/m07-hql-queries/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/day1-databases/m07-hql-queries/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/day1-databases/m08-testing-persistence/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/day1-databases/m08-testing-persistence/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/day1-databases/m09-spring-data/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/day1-databases/m09-spring-data/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/day1-databases/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/day1-databases/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/day2-code-quality/m01-hibernate-advanced/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/day2-code-quality/m01-hibernate-advanced/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/day2-code-quality/m02-design-patterns/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/day2-code-quality/m02-design-patterns/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/day2-code-quality/m03-refactoring/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/day2-code-quality/m03-refactoring/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/day2-code-quality/m04-tools-and-ai/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/day2-code-quality/m04-tools-and-ai/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/day2-code-quality/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/day2-code-quality/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/main/resources" charset="UTF-8" />
+  </component>
+</project>
