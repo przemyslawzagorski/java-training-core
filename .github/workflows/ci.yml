@@ -43,13 +43,13 @@ jobs:
       run: mvn test -B
 
     # 5. (Opcjonalnie) Generuj raport pokrycia kodu
-    # - name: Generate coverage report
-    #   run: mvn jacoco:report
+    - name: Generate coverage report
+      run: mvn jacoco:report
 
     # 6. (Opcjonalnie) Upload artefaktów
-    # - name: Upload build artifacts
-    #   uses: actions/upload-artifact@v4
-    #   with:
-    #     name: Package
-    #     path: target/*.jar
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+       name: Package
+       path: target/*.jar
 
