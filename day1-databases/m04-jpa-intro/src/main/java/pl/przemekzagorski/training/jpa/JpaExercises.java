@@ -165,23 +165,77 @@ public class JpaExercises {
      */
     private static Long exercise1_PersistShip(EntityManagerFactory emf,
                                                String name, String type, int cannons) {
+        // 🔴 BREAKPOINT 1: Ustaw tutaj - PRZED utworzeniem EntityManager
+        // 👁️ OBSERWUJ: emf (EntityManagerFactory) - ciężki obiekt, jeden na aplikację
+        // 💡 ZADANIE: W Evaluate (Alt+F8) sprawdź: emf.isOpen() - powinno być true
+
         // TODO 1: Utwórz EntityManager z factory
         EntityManager em = emf.createEntityManager();
+
+        // 🔴 BREAKPOINT 2: Po utworzeniu EM, PRZED begin()
+        // 👁️ OBSERWUJ w Variables:
+        //    - em.isOpen() = true (EntityManager jest otwarty)
+        //    - em.getTransaction().isActive() = false (transakcja jeszcze nie rozpoczęta)
+        // 💡 ZADANIE: Sprawdź em.isOpen() w Evaluate
 
         // TODO 2: Rozpocznij transakcję
         em.getTransaction().begin();
 
+        // 🔴 BREAKPOINT 3: Po begin(), PRZED utworzeniem Ship
+        // 👁️ OBSERWUJ: em.getTransaction().isActive() = true (transakcja aktywna)
+
         // TODO 3: Utwórz obiekt Ship z podanymi parametrami
         Ship ship = new Ship(/* name */ name, /* type */ type, /* cannons */ cannons);
+
+        // 🔴 BREAKPOINT 4: Po utworzeniu Ship, PRZED persist()
+        // 👁️ OBSERWUJ w Variables:
+        //    - ship.getId() = null (encja w stanie NEW/TRANSIENT - nie ma ID!)
+        //    - ship.name, ship.type, ship.cannons - wartości ustawione
+        // 💡 ZADANIE: W Evaluate sprawdź: em.contains(ship)
+        //    Wynik: false - encja NIE jest jeszcze zarządzana przez EntityManager
+        // 💡 KLUCZOWA OBSERWACJA: To jest stan TRANSIENT (NEW)
+        //    - Obiekt istnieje w pamięci Java
+        //    - NIE istnieje w bazie danych
+        //    - EntityManager o nim NIE WIE
 
         // TODO 4: Zapisz do bazy używając persist()
         em.persist(/* encja */ ship);
 
+        // 🔴 BREAKPOINT 5: PO persist(), PRZED commit()
+        // 👁️ OBSERWUJ w Variables:
+        //    - ship.getId() - UWAGA! Już ma wartość! (np. 1, 2, 3...)
+        // 💡 ZADANIE: Sprawdź em.contains(ship) - teraz zwróci true!
+        // 💡 KLUCZOWA OBSERWACJA: persist() zmienia stan z NEW → MANAGED
+        //    - Encja jest teraz zarządzana przez EntityManager
+        //    - ID zostało automatycznie przypisane (dla IDENTITY od razu)
+        //    - Hibernate "śledzi" tę encję (dirty checking)
+        // 💡 PYTANIE: Czy INSERT został już wykonany w bazie?
+        //    Odpowiedź: NIE! INSERT wykona się dopiero przy commit()
+        //    (możesz to sprawdzić w logach SQL - jeszcze nie ma INSERT)
+
         // TODO 5: Zatwierdź transakcję (wykonuje INSERT)
         em.getTransaction().commit();
 
+        // 🔴 BREAKPOINT 6: PO commit(), PRZED close()
+        // 👁️ OBSERWUJ: Teraz INSERT został wykonany w bazie
+        // 💡 ZADANIE: Sprawdź logi SQL w konsoli - zobaczysz:
+        //    Hibernate: insert into ship (cannons,name,type,id) values (?,?,?,?)
+        // 💡 KLUCZOWA OBSERWACJA: commit() wykonuje faktyczny INSERT do bazy
+
         // TODO 6: Zamknij EntityManager
         em.close();
+
+        // 🔴 BREAKPOINT 7: PO close()
+        // 👁️ OBSERWUJ:
+        //    - em.isOpen() = false (EntityManager zamknięty)
+        //    - ship.getId() - wciąż ma wartość! (obiekt istnieje w pamięci)
+        // 💡 ZADANIE: Spróbuj em.contains(ship) - rzuci IllegalStateException!
+        //    Dlaczego? Bo EntityManager jest zamknięty
+        // 💡 KLUCZOWA OBSERWACJA: Encja jest teraz DETACHED
+        //    - Istnieje w pamięci Java (możemy używać ship.getName() itp.)
+        //    - Istnieje w bazie danych
+        //    - ALE EntityManager o niej nie wie (bo jest zamknięty)
+        //    - Zmiany w ship NIE będą automatycznie zapisane do bazy
 
         // TODO 7: Zwróć ID zapisanego statku
         return ship.getId();
@@ -258,14 +312,51 @@ public class JpaExercises {
         // TODO 2: Rozpocznij transakcję
         // em.getTransaction().begin();
 
+        // 🔴 BREAKPOINT 1: Po begin(), PRZED find()
+        // 👁️ OBSERWUJ: Transakcja aktywna, zaraz pobierzemy encję
+
         // TODO 3: Pobierz statek używając find()
         // Ship ship = em.find(Ship.class, shipId);
+
+        // 🔴 BREAKPOINT 2: Po find(), PRZED setCannons()
+        // 👁️ OBSERWUJ w Variables:
+        //    - ship - rozwiń i zobacz wszystkie pola
+        //    - ship.cannons - obecna wartość (np. 32)
+        //    - ship.id - ma wartość (encja z bazy)
+        // 💡 ZADANIE: Sprawdź em.contains(ship) - zwróci true (encja MANAGED)
+        // 💡 KLUCZOWA OBSERWACJA: Hibernate utworzył "snapshot" encji!
+        //    - Zapamiętał wszystkie wartości pól w momencie pobrania
+        //    - Ten snapshot będzie użyty do wykrycia zmian przy commit()
+        //    - To jest podstawa mechanizmu DIRTY CHECKING
 
         // TODO 4: Zmień liczbę armat (setter)
         // ship.setCannons(newCannons);
 
+        // 🔴 BREAKPOINT 3: PO setCannons(), PRZED commit()
+        // 👁️ OBSERWUJ w Variables:
+        //    - ship.cannons - nowa wartość (np. 64)
+        // 💡 PYTANIE: Czy wywołaliśmy jakąś metodę "update()" lub "save()"? NIE!
+        // 💡 PYTANIE: Skąd Hibernate wie że coś się zmieniło?
+        //    Odpowiedź: Przy commit() porówna obecny stan ze "snapshot"!
+        // 💡 KLUCZOWA OBSERWACJA: To jest "magia" JPA - DIRTY CHECKING
+        //    - Encja MANAGED jest automatycznie śledzona
+        //    - Hibernate pamięta jej początkowy stan (snapshot)
+        //    - Przy commit() wykryje różnice i wygeneruje UPDATE
+        //    - NIE musisz wołać żadnej metody update()!
+
         // TODO 5: Zatwierdź transakcję - UPDATE wykona się automatycznie!
         // em.getTransaction().commit();
+
+        // 🔴 BREAKPOINT 4: PO commit() - ustaw i naciśnij F8 (Step Over)
+        // 👁️ OBSERWUJ: Logi SQL w konsoli - zobaczysz:
+        //    Hibernate: update ship set cannons=?, name=?, type=? where id=?
+        // 💡 KLUCZOWA OBSERWACJA: To jest DIRTY CHECKING w akcji!
+        //    1. Hibernate zapamiętał stan przy find() (snapshot)
+        //    2. Przy commit() porównał obecny stan ze snapshot
+        //    3. Wykrył zmianę w polu cannons
+        //    4. Automatycznie wygenerował UPDATE tylko dla zmienionego wiersza!
+        // 💡 EKSPERYMENT: Zmień 2 pola (np. cannons i name) - UPDATE zaktualizuje oba!
+        // 💡 EKSPERYMENT: Nie zmieniaj nic - UPDATE się NIE wykona (optymalizacja)!
 
         // TODO 6: Zamknij EntityManager
         // em.close();

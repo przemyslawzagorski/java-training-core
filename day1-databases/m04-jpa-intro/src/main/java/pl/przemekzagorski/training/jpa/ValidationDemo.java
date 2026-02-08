@@ -98,7 +98,7 @@ public class ValidationDemo {
         System.out.println("2. WALIDACJA PRZEZ JPA/HIBERNATE");
         System.out.println("-".repeat(50));
 
-        EntityManagerFactory emf = Persistence.createEntityManagerFactory("jpa-intro");
+        EntityManagerFactory emf = Persistence.createEntityManagerFactory("pirates-pu");
         EntityManager em = emf.createEntityManager();
 
         try {

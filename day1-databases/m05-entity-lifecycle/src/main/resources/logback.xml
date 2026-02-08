@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    ═══════════════════════════════════════════════════════════════════════
+    LOGBACK CONFIGURATION - Moduł m05-entity-lifecycle
+    ═══════════════════════════════════════════════════════════════════════
+    
+    Ten plik konfiguruje logowanie dla modułu Entity Lifecycle.
+    Główny cel: Pokazywać TYLKO zapytania SQL, aby obserwować cykl życia encji.
+    
+    CYKL ŻYCIA ENCJI (stany):
+    - TRANSIENT (NEW)    → Obiekt utworzony przez 'new', nie w bazie
+    - MANAGED (PERSISTENT) → Encja śledzona przez EntityManager
+    - DETACHED           → Encja była w bazie, ale nie jest już śledzona
+    - REMOVED            → Encja oznaczona do usunięcia
+    
+    W tym module obserwujemy:
+    - Kiedy INSERT się wykonuje (persist)
+    - Kiedy UPDATE się wykonuje (dirty checking)
+    - Kiedy SELECT się wykonuje (find, merge)
+    - Kiedy DELETE się wykonuje (remove)
+    
+    ═══════════════════════════════════════════════════════════════════════
+-->
+<configuration>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- APPENDER - Gdzie i jak logować                                   -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <!-- 
+                PATTERN - Format wiadomości:
+                %cyan([SQL]) - Kolorowy prefix [SQL] (niebieski)
+                %msg         - Treść wiadomości (zapytanie SQL)
+                %n           - Nowa linia
+                
+                Dla lifecycle warto zobaczyć timestamp:
+                Odkomentuj poniższą linię aby zobaczyć czas wykonania SQL:
+            -->
+            <pattern>%cyan([SQL]) %msg%n</pattern>
+            <!-- <pattern>%d{HH:mm:ss.SSS} %cyan([SQL]) %msg%n</pattern> -->
+        </encoder>
+    </appender>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- HIBERNATE SQL - Zapytania SQL                                    -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    
+    <!--
+        org.hibernate.SQL - Logger odpowiedzialny za zapytania SQL
+        
+        KLUCZOWE dla lifecycle - zobaczysz:
+        - INSERT po persist()
+        - SELECT po find() lub merge()
+        - UPDATE po commit() (dirty checking)
+        - DELETE po remove() + commit()
+        
+        EFEKT:
+        [SQL] insert into pirates (bounty,name,nickname,rank,id) values (?,?,?,?,?)
+        [SQL] select p1_0.id,p1_0.bounty,p1_0.name,p1_0.nickname,p1_0.rank from pirates p1_0 where p1_0.id=?
+        [SQL] update pirates set bounty=?,name=?,nickname=?,rank=? where id=?
+        [SQL] delete from pirates where id=?
+    -->
+    <logger name="org.hibernate.SQL" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- PARAMETRY ZAPYTAŃ - Wartości podstawiane za znaki zapytania (?) -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    
+    <!--
+        org.hibernate.orm.jdbc.bind - Logger dla parametrów zapytań
+        
+        PRZYDATNE dla lifecycle - zobaczysz jakie wartości są zapisywane/aktualizowane
+        
+        EFEKT po odkomentowaniu:
+        [SQL] insert into pirates (...) values (?,?,?,?,?)
+        binding parameter [1] as [NUMERIC] - [10000]
+        binding parameter [2] as [VARCHAR] - [Jack Sparrow]
+        binding parameter [3] as [VARCHAR] - [Captain Jack]
+        binding parameter [4] as [VARCHAR] - [Captain]
+        binding parameter [5] as [BIGINT] - [1]
+        
+        UWAGA: Generuje DUŻO logów! Używaj tylko do szczegółowego debugowania.
+    -->
+    <!--
+    <logger name="org.hibernate.orm.jdbc.bind" level="TRACE" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    -->
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- PERSISTENCE CONTEXT - Zarządzanie encjami                        -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    
+    <!--
+        org.hibernate.engine.internal.StatefulPersistenceContext
+        
+        BARDZO PRZYDATNE dla lifecycle - zobaczysz:
+        - Kiedy encja jest dodawana do persistence context
+        - Kiedy encja jest usuwana z persistence context
+        - Dirty checking (wykrywanie zmian)
+        
+        DOMYŚLNIE WYŁĄCZONE - odkomentuj dla zaawansowanego debugowania
+    -->
+    <!--
+    <logger name="org.hibernate.engine.internal.StatefulPersistenceContext" level="TRACE" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    -->
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- DIRTY CHECKING - Śledzenie zmian w encjach                       -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+
+    <!--
+        org.hibernate.event.internal.DefaultFlushEventListener
+
+        KLUCZOWE dla lifecycle - zobaczysz:
+        - Kiedy Hibernate wykrywa zmiany (dirty checking)
+        - Kiedy flush się wykonuje (synchronizacja z bazą)
+        - Które pola się zmieniły
+
+        ZALECAM WŁĄCZYĆ - to jest SERCE mechanizmu dirty checking!
+
+        EFEKT:
+        Dirty checking collections
+        Flushed: 0 insertions, 1 updates, 0 deletions to 1 objects
+        Flushed: 0 (re)creations, 0 updates, 0 removals to 0 collections
+        ↑ Zobaczysz ILE encji zostało zaktualizowanych automatycznie!
+    -->
+    <logger name="org.hibernate.event.internal.DefaultFlushEventListener" level="TRACE" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- MERGE - Operacja merge() (DETACHED → MANAGED)                    -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+
+    <!--
+        org.hibernate.event.internal.DefaultMergeEventListener
+
+        PRZYDATNE dla exercise4 (DETACHED i merge) - zobaczysz:
+        - Kiedy merge() jest wywoływane
+        - SELECT (Hibernate sprawdza czy encja istnieje w bazie)
+        - Kopiowanie danych z DETACHED do MANAGED
+        - UPDATE (jeśli były zmiany)
+
+        ZALECAM WŁĄCZYĆ dla exercise4 - zobaczysz jak merge() działa!
+
+        EFEKT:
+        Merging detached instance
+        [SQL] select p1_0.id,... from pirates p1_0 where p1_0.id=?  ← SELECT przed merge
+        [SQL] update pirates set bounty=?,... where id=?  ← UPDATE jeśli były zmiany
+    -->
+    <logger name="org.hibernate.event.internal.DefaultMergeEventListener" level="TRACE" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- TRANSAKCJE - Logi transakcji JPA                                 -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+
+    <!--
+        org.hibernate.engine.transaction - Logger dla transakcji
+
+        PRZYDATNE dla lifecycle - zobaczysz:
+        - begin() - rozpoczęcie transakcji
+        - commit() - zatwierdzenie (tu wykonują się INSERT/UPDATE/DELETE + dirty checking!)
+        - rollback() - wycofanie transakcji
+
+        ZALECAM WŁĄCZYĆ - zobaczysz KIEDY dirty checking się uruchamia!
+
+        EFEKT:
+        begin
+        [SQL] select ...
+        Dirty checking collections  ← dirty checking!
+        Flushed: 0 insertions, 1 updates, 0 deletions to 1 objects
+        [SQL] update pirates set bounty=? ...  ← automatyczny UPDATE!
+        committing
+    -->
+    <logger name="org.hibernate.engine.transaction" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- WYŁĄCZANIE NIEPOTRZEBNYCH LOGÓW                                  -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    
+    <!-- Wyłącz wszystkie inne logi Hibernate (poza SQL) -->
+    <logger name="org.hibernate" level="WARN"/>
+    
+    <!-- Wyłącz logi HikariCP (connection pool) -->
+    <logger name="com.zaxxer.hikari" level="WARN"/>
+    
+    <!-- Wyłącz logi JBoss (używane przez Hibernate) -->
+    <logger name="org.jboss" level="WARN"/>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- ROOT LOGGER - Domyślny poziom dla wszystkich innych logów        -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    
+    <!--
+        Root logger - łapie wszystkie logi, które nie mają własnego loggera
+        
+        level="WARN" - Pokazuj tylko ostrzeżenia i błędy (+ SQL z powyższych loggerów)
+        
+        Dla lifecycle możesz chcieć zobaczyć więcej:
+        - level="OFF"   - TYLKO SQL (czyste logi)
+        - level="INFO"  - SQL + informacyjne logi aplikacji
+    -->
+    <root level="WARN">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+</configuration>
+

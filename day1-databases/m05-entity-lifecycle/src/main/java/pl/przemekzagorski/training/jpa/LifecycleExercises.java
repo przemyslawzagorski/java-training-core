@@ -82,15 +82,47 @@ public class LifecycleExercises {
         System.out.println("📝 ĆWICZENIE 1: Rozpoznaj stan TRANSIENT");
         System.out.println("═".repeat(60));
 
+        // 🔴 BREAKPOINT 1: Ustaw tutaj - PRZED utworzeniem EntityManager
+        // 👁️ OBSERWUJ: emf jest otwarty, zaraz utworzymy EntityManager
         EntityManager em = emf.createEntityManager();
 
         try {
+            // 🔴 BREAKPOINT 2: PRZED utworzeniem pirata
+            // 👁️ OBSERWUJ: em jest pusty (nie zarządza żadnymi encjami)
+            // 💡 ZADANIE: W Evaluate sprawdź: em.isOpen() - powinno być true
+
             // TODO: Utwórz nowego pirata - NIE używaj persist()
             Pirate newPirate = null; // <-- Utwórz pirata: new Pirate("Blackbeard", "Captain", new BigDecimal("50000"))
+
+            // 🔴 BREAKPOINT 3: PO utworzeniu pirata
+            // 👁️ OBSERWUJ w Variables:
+            //    - newPirate - rozwiń i zobacz wszystkie pola
+            //    - newPirate.id = null (nie ma ID!)
+            //    - newPirate.name = "Blackbeard"
+            //    - newPirate.rank = "Captain"
+            //    - newPirate.bounty = 50000
+            // 💡 ZADANIE: W Evaluate sprawdź: em.contains(newPirate)
+            //    Wynik: false - EntityManager NIE WIE o tym obiekcie!
+            // 💡 KLUCZOWA OBSERWACJA: To jest stan TRANSIENT (NEW)
+            //    - Obiekt istnieje w pamięci Java (utworzony przez "new")
+            //    - NIE istnieje w bazie danych
+            //    - EntityManager o nim NIE WIE (em.contains() = false)
+            //    - Nie ma ID (id = null)
+            //    - Zmiany w tym obiekcie NIE wpłyną na bazę danych
 
             // TODO: Sprawdź stan encji
             boolean isManaged = true;  // <-- Użyj em.contains(newPirate)
             Long pirateId = 1L;        // <-- Użyj newPirate.getId()
+
+            // 🔴 BREAKPOINT 4: Po sprawdzeniu stanu
+            // 👁️ OBSERWUJ:
+            //    - isManaged = false (encja NIE jest zarządzana)
+            //    - pirateId = null (brak ID)
+            // 💡 PYTANIE: Co się stanie jeśli zamkniemy em bez persist()?
+            //    Odpowiedź: Obiekt zniknie! Nie zostanie zapisany w bazie.
+            //    Będzie tylko "śmieciem" w pamięci Java (garbage collector go usunie)
+            // 💡 PYTANIE: Jak zmienić stan z TRANSIENT na MANAGED?
+            //    Odpowiedź: Użyj em.persist(newPirate) w transakcji!
 
             // Weryfikacja
             System.out.println("   Nowy pirat: " + newPirate);
@@ -238,14 +270,40 @@ public class LifecycleExercises {
         Long testPirateId = getFirstPirateId();
 
         // Krok 1: Pobierz pirata i zamknij EM - stanie się DETACHED
+        // 🔴 BREAKPOINT 1: PRZED find()
+        // 👁️ OBSERWUJ: em1 jest otwarty, zaraz pobierzemy pirata
         EntityManager em1 = emf.createEntityManager();
         Pirate detachedPirate = em1.find(Pirate.class, testPirateId);
+
+        // 🔴 BREAKPOINT 2: PO find(), PRZED close()
+        // 👁️ OBSERWUJ w Variables:
+        //    - detachedPirate - ma wszystkie dane z bazy
+        //    - detachedPirate.id - ma wartość (np. 1)
+        // 💡 ZADANIE: Sprawdź em1.contains(detachedPirate) - zwróci true (MANAGED)
+
         em1.close();
+
+        // 🔴 BREAKPOINT 3: PO close()
+        // 👁️ OBSERWUJ: detachedPirate wciąż istnieje w pamięci!
+        // 💡 ZADANIE: Spróbuj em1.contains(detachedPirate) - rzuci IllegalStateException!
+        //    Dlaczego? Bo em1 jest zamknięty
+        // 💡 KLUCZOWA OBSERWACJA: Encja jest teraz DETACHED
+        //    - Istnieje w pamięci Java (możemy używać getterów/setterów)
+        //    - Istnieje w bazie danych
+        //    - ALE EntityManager o niej nie wie (bo jest zamknięty)
+        //    - Zmiany w detachedPirate NIE będą automatycznie zapisane!
+
         System.out.println("   Pirat pobrany i EM zamknięty: " + detachedPirate);
 
         // Krok 2: Modyfikuj DETACHED encję
         String newNickname = "The Terror of the Seas";
         detachedPirate.setNickname(newNickname);
+
+        // 🔴 BREAKPOINT 4: PO setNickname()
+        // 👁️ OBSERWUJ: detachedPirate.nickname - zmieniony w pamięci
+        // 💡 PYTANIE: Czy zmiana została zapisana w bazie? NIE!
+        //    Encja jest DETACHED - nie jest śledzona przez żaden EntityManager
+
         System.out.println("   Zmieniono nickname na: " + newNickname);
 
         // Krok 3: Użyj merge() aby zapisać zmiany
@@ -253,8 +311,29 @@ public class LifecycleExercises {
         try {
             em2.getTransaction().begin();
 
+            // 🔴 BREAKPOINT 5: PRZED merge()
+            // 👁️ OBSERWUJ: em2.contains(detachedPirate) = false (nie jest zarządzany)
+            // 💡 ZADANIE: Sprawdź em2.contains(detachedPirate) w Evaluate
+
             // TODO: Użyj merge() - PAMIĘTAJ: zwraca NOWY obiekt!
             Pirate managedPirate = null; // <-- em2.merge(detachedPirate);
+
+            // 🔴 BREAKPOINT 6: PO merge()
+            // 👁️ OBSERWUJ w Variables: Mamy DWIE referencje!
+            //    - detachedPirate (oryginalny obiekt)
+            //    - managedPirate (zwrócony przez merge())
+            // 💡 ZADANIE: Sprawdź w Evaluate:
+            //    - em2.contains(detachedPirate) - zwróci false!
+            //    - em2.contains(managedPirate) - zwróci true!
+            // 💡 KLUCZOWA OBSERWACJA: merge() zwraca NOWY obiekt!
+            //    - detachedPirate wciąż jest DETACHED (nie jest zarządzany)
+            //    - managedPirate jest MANAGED (zarządzany przez em2)
+            //    - To są DWA RÓŻNE obiekty w pamięci!
+            // 💡 CZĘSTY BŁĄD POCZĄTKUJĄCYCH:
+            //    ❌ ŹLE: em.merge(pirate); pirate.setName("X");
+            //       Zmiana NIE zostanie zapisana! (pirate wciąż DETACHED)
+            //    ✅ DOBRZE: pirate = em.merge(pirate); pirate.setName("X");
+            //       Teraz pirate wskazuje na obiekt MANAGED - zmiana zostanie zapisana!
 
             // TODO: Sprawdź stany obu obiektów
             boolean originalIsManaged = true; // <-- em2.contains(detachedPirate) - oryginalny
@@ -264,7 +343,16 @@ public class LifecycleExercises {
             System.out.println("   - Oryginalny (detachedPirate) em.contains() = " + originalIsManaged);
             System.out.println("   - Zwrócony (managedPirate) em.contains() = " + mergedIsManaged);
 
+            // 🔴 BREAKPOINT 7: PRZED commit()
+            // 💡 ZADANIE: Sprawdź czy detachedPirate == managedPirate
+            //    Wynik: false - to są RÓŻNE obiekty!
+
             em2.getTransaction().commit();
+
+            // 🔴 BREAKPOINT 8: PO commit()
+            // 👁️ OBSERWUJ: Logi SQL - zobaczysz UPDATE z nowym nickname
+            // 💡 KLUCZOWA OBSERWACJA: merge() skopiował zmiany do MANAGED encji
+            //    i Hibernate zapisał je do bazy przy commit()
 
             boolean success = !originalIsManaged && mergedIsManaged && managedPirate != null;
             System.out.println("   Status: " + (success ? "✅ POPRAWNIE!" : "❌ Sprawdź rozwiązanie"));

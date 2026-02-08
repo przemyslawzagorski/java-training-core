@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    ═══════════════════════════════════════════════════════════════════════
+    LOGBACK CONFIGURATION - Moduł m04-jpa-intro
+    ═══════════════════════════════════════════════════════════════════════
+    
+    Ten plik konfiguruje logowanie dla modułu JPA Intro.
+    Główny cel: Pokazywać TYLKO zapytania SQL Hibernate, bez szumu z innych logów.
+    
+    STRUKTURA PLIKU:
+    1. Appender (gdzie logować - konsola)
+    2. Loggery dla Hibernate SQL
+    3. Loggery wyłączające niepotrzebne komponenty
+    4. Root logger (domyślny poziom)
+    
+    POZIOMY LOGOWANIA (od najniższego do najwyższego):
+    - TRACE: Bardzo szczegółowe (np. wartości parametrów SQL)
+    - DEBUG: Szczegółowe (np. zapytania SQL)
+    - INFO:  Informacyjne (normalne działanie aplikacji)
+    - WARN:  Ostrzeżenia (potencjalne problemy)
+    - ERROR: Błędy (rzeczywiste problemy)
+    - OFF:   Wyłączone (brak logów)
+    
+    ═══════════════════════════════════════════════════════════════════════
+-->
+<configuration>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- APPENDER - Gdzie i jak logować                                   -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <!-- 
+                PATTERN - Format wiadomości:
+                %cyan([SQL]) - Kolorowy prefix [SQL] (cyan = niebieski)
+                %msg         - Treść wiadomości (zapytanie SQL)
+                %n           - Nowa linia
+                
+                Możesz zmienić na:
+                - "%msg%n"                           - Tylko SQL bez prefixu
+                - "%d{HH:mm:ss.SSS} [SQL] %msg%n"    - Z timestampem
+                - "%green([SQL]) %msg%n"             - Zielony prefix
+            -->
+            <pattern>%cyan([SQL]) %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- HIBERNATE SQL - Zapytania SQL                                    -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+
+    <!--
+        org.hibernate.SQL - Logger odpowiedzialny za zapytania SQL
+
+        KLUCZOWE dla m04-jpa-intro - zobaczysz:
+        - INSERT po persist() + commit()
+        - SELECT po find()
+        - UPDATE po zmianie pola + commit() (DIRTY CHECKING!)
+        - DELETE po remove() + commit()
+
+        EFEKT:
+        [SQL] insert into ships (cannons,ship_name,ship_type,id) values (?,?,?,?)
+        [SQL] select s1_0.id,s1_0.ship_name,s1_0.ship_type,s1_0.cannons from ships s1_0 where s1_0.id=?
+        [SQL] update ships set cannons=?,ship_name=?,ship_type=? where id=?
+        [SQL] delete from ships where id=?
+    -->
+    <logger name="org.hibernate.SQL" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- PARAMETRY ZAPYTAŃ - Wartości podstawiane za znaki zapytania (?) -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    
+    <!--
+        org.hibernate.orm.jdbc.bind - Logger dla parametrów zapytań
+        
+        DOMYŚLNIE WYŁĄCZONE (zakomentowane) - odkomentuj aby zobaczyć wartości parametrów
+        
+        EFEKT po odkomentowaniu:
+        [SQL] select ... where s1_0.id=?
+        binding parameter [1] as [BIGINT] - [1]
+        
+        UWAGA: Może generować DUŻO logów! Używaj tylko do debugowania.
+    -->
+    <!--
+    <logger name="org.hibernate.orm.jdbc.bind" level="TRACE" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    -->
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- STATYSTYKI HIBERNATE - Wydajność zapytań                         -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    
+    <!--
+        org.hibernate.stat - Logger dla statystyk Hibernate
+        
+        DOMYŚLNIE WYŁĄCZONE - odkomentuj aby zobaczyć statystyki
+        
+        WYMAGA RÓWNIEŻ w persistence.xml:
+        <property name="hibernate.generate_statistics" value="true"/>
+        
+        EFEKT: Liczba zapytań, cache hits, czas wykonania, itp.
+    -->
+    <!--
+    <logger name="org.hibernate.stat" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    -->
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- TRANSAKCJE - Logi transakcji JPA                                 -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+
+    <!--
+        org.hibernate.engine.transaction - Logger dla transakcji
+
+        PRZYDATNE dla m04-jpa-intro - zobaczysz:
+        - begin() - rozpoczęcie transakcji
+        - commit() - zatwierdzenie (tu wykonują się INSERT/UPDATE/DELETE!)
+        - rollback() - wycofanie transakcji
+
+        ZALECAM WŁĄCZYĆ - zobaczysz KIEDY SQL się wykonuje!
+
+        EFEKT:
+        begin
+        [SQL] insert into ships ...
+        committing
+        ↑ Zobaczysz że INSERT wykonuje się PRZY COMMIT, nie przy persist()!
+    -->
+    <logger name="org.hibernate.engine.transaction" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- DIRTY CHECKING - Śledzenie zmian w encjach                       -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    
+    <!--
+        org.hibernate.event.internal - Logger dla dirty checking
+        
+        DOMYŚLNIE WYŁĄCZONE - odkomentuj aby zobaczyć jak Hibernate śledzi zmiany
+        
+        EFEKT: Informacje o flush, dirty checking, auto-flush
+    -->
+    <!--
+    <logger name="org.hibernate.event.internal" level="TRACE" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    -->
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- WYŁĄCZANIE NIEPOTRZEBNYCH LOGÓW                                  -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    
+    <!-- Wyłącz wszystkie inne logi Hibernate (poza SQL) -->
+    <logger name="org.hibernate" level="WARN"/>
+    
+    <!-- Wyłącz logi HikariCP (connection pool) -->
+    <logger name="com.zaxxer.hikari" level="WARN"/>
+    
+    <!-- Wyłącz logi JBoss (używane przez Hibernate) -->
+    <logger name="org.jboss" level="WARN"/>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- ROOT LOGGER - Domyślny poziom dla wszystkich innych logów        -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    
+    <!--
+        Root logger - łapie wszystkie logi, które nie mają własnego loggera
+        
+        level="WARN" - Pokazuj tylko ostrzeżenia i błędy
+        
+        Możesz zmienić na:
+        - level="OFF"   - Wyłącz wszystkie inne logi (tylko SQL)
+        - level="INFO"  - Pokazuj też informacyjne logi aplikacji
+        - level="DEBUG" - Pokazuj wszystkie logi (DUŻO szumu!)
+    -->
+    <root level="WARN">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+</configuration>
+

@@ -4,18 +4,22 @@ import java.math.BigDecimal;
 import java.sql.*;
 
 /**
- * 🏴‍☠️ Ćwiczenia JDBC - Szkielety do wypełnienia
- * 
- * Instrukcja:
- * 1. Wypełnij każdą metodę zgodnie z opisem w TODO
- * 2. Uruchom metodę main() aby przetestować swoje rozwiązania
- * 3. Jeśli utkniesz - sprawdź JdbcExercisesSolutions.java
- * 
- * Baza danych: H2 in-memory (dane znikają po zakończeniu programu)
+ * 🏴‍☠️ Ćwiczenia JDBC - Debugowanie i obserwacja
+ *
+ * 📋 INSTRUKCJA DEBUGOWANIA:
+ * 1. Ustaw breakpointy w miejscach oznaczonych 🔴 BREAKPOINT
+ * 2. Uruchom w trybie Debug (Shift+F9 w IntelliJ)
+ * 3. Obserwuj zmienne w panelu "Variables"
+ * 4. Używaj F8 (Step Over) do przechodzenia linia po linii
+ * 5. Używaj F7 (Step Into) aby wejść do metody
+ *
+ * 🎯 CEL: Zrozumieć jak działa JDBC "pod maską"
  */
 public class JdbcExercises {
 
-    private static final String JDBC_URL = "jdbc:h2:mem:exercises;DB_CLOSE_DELAY=-1";
+    // 🔍 TRACE_LEVEL_SYSTEM_OUT=2 - pokazuje wszystkie zapytania SQL w konsoli!
+    // Poziomy: 0=OFF, 1=ERROR, 2=INFO, 3=DEBUG, 4=TRACE
+    private static final String JDBC_URL = "jdbc:h2:mem:exercises;DB_CLOSE_DELAY=-1;TRACE_LEVEL_SYSTEM_OUT=2";
     private static final String USER = "sa";
     private static final String PASSWORD = "";
 
@@ -25,78 +29,69 @@ public class JdbcExercises {
 
         exercise1_BasicConnection();
         System.out.println("\n" + "=".repeat(50) + "\n");
-        
+
         exercise2_SelectQuery();
         System.out.println("\n" + "=".repeat(50) + "\n");
-        
+
         exercise3_InsertWithStatement();
         System.out.println("\n" + "=".repeat(50) + "\n");
-        
+
         exercise4_InsertWithPreparedStatement();
         System.out.println("\n" + "=".repeat(50) + "\n");
-        
+
         exercise5_ExceptionHandling();
         System.out.println("\n" + "=".repeat(50) + "\n");
-        
+
         exercise6_Transactions();
     }
 
     /**
      * 🎯 ĆWICZENIE 1: Podstawowe połączenie z bazą
      *
-     * 🎯 POZIOM: ŁATWY (szkielet kodu)
+     * 🔍 CO OBSERWOWAĆ W DEBUGGERZE:
+     * - Typ obiektu Connection (implementacja H2)
+     * - Stan połączenia (isClosed, autoCommit)
+     * - Co się dzieje po wyjściu z try-with-resources
      *
-     * Cel: Nauczyć się nawiązywać połączenie z bazą używając try-with-resources
-     *
-     * Kroki do wykonania:
-     * 1. Uzupełnij DriverManager.getConnection() - podaj URL, USER, PASSWORD
-     * 2. Wyświetl komunikat "✅ Połączono z bazą!"
-     * 3. Obsługa błędów już jest - tylko uzupełnij komunikat
-     *
-     * 💡 Wskazówki:
-     * - try-with-resources automatycznie zamyka Connection
-     * - Connection implementuje AutoCloseable
-     * - DriverManager.getConnection() wymaga 3 parametrów
-     * - SQLException musi być obsłużony
-     *
-     * 🆘 Jeśli utkniesz, sprawdź JdbcExercisesSolutions.java
+     * 📌 BREAKPOINTY:
+     * 1. 🔴 Na linii z getConnection() - PRZED połączeniem
+     * 2. 🔴 Na println "Połączono" - PO połączeniu, sprawdź obiekt conn
+     * 3. 🔴 Na zamykającym nawiasie } catch - czy połączenie się zamknęło?
      */
     private static void exercise1_BasicConnection() {
         System.out.println("📝 Ćwiczenie 1: Podstawowe połączenie");
 
-        // TODO 1: Uzupełnij parametry getConnection()
-        try (Connection conn = DriverManager.getConnection(/* url */ JDBC_URL, /* user */ USER, /* password */ PASSWORD)) {
+        // 🔴 BREAKPOINT 1: Ustaw tutaj - sprawdź wartości JDBC_URL, USER, PASSWORD
+        // 👁️ OBSERWUJ: Zmienne statyczne w panelu Variables
+        try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD)) {
 
-            // TODO 2: Wyświetl komunikat o sukcesie
+            // 🔴 BREAKPOINT 2: Ustaw tutaj - połączenie nawiązane
+            // 👁️ OBSERWUJ w panelu Variables:
+            //    - conn -> rozwiń i zobacz: isClosed=false, autoCommit=true
+            //    - Typ: JdbcConnection (implementacja H2)
+            // 💡 ZADANIE: W panelu Evaluate (Alt+F8) wpisz: conn.getMetaData().getDatabaseProductName()
             System.out.println("   ✅ Połączono z bazą!");
 
         } catch (SQLException e) {
-            // TODO 3: Wyświetl błąd
             System.err.println("   ❌ Błąd połączenia: " + e.getMessage());
         }
+        // 🔴 BREAKPOINT 3: Ustaw tutaj (poza try)
+        // 👁️ OBSERWUJ: Zmienna conn już nie istnieje - została automatycznie zamknięta!
+        // 💡 To jest magia try-with-resources
     }
 
     /**
      * 🎯 ĆWICZENIE 2: Wykonanie zapytania SELECT
      *
-     * 🎯 POZIOM: ŁATWY (szkielet kodu)
+     * 🔍 CO OBSERWOWAĆ W DEBUGGERZE:
+     * - Jak ResultSet przechowuje dane (kursor)
+     * - Jak zmienia się pozycja kursora po każdym next()
+     * - Wartości pobierane z kolumn
      *
-     * Cel: Nauczyć się wykonywać zapytania SELECT i iterować po wynikach
-     *
-     * Kroki do wykonania:
-     * 1. Uzupełnij CREATE TABLE
-     * 2. Uzupełnij INSERT statements
-     * 3. Uzupełnij SELECT query
-     * 4. Uzupełnij iterację po ResultSet
-     * 5. Uzupełnij pobieranie wartości z kolumn
-     *
-     * 💡 Wskazówki:
-     * - stmt.execute() dla CREATE i INSERT (nie zwraca wyników)
-     * - stmt.executeQuery() dla SELECT (zwraca ResultSet)
-     * - rs.next() przesuwa kursor i zwraca true jeśli jest następny rekord
-     * - rs.getInt("id"), rs.getString("name"), rs.getBigDecimal("bounty")
-     *
-     * 🆘 Jeśli utkniesz, sprawdź JdbcExercisesSolutions.java
+     * 📌 BREAKPOINTY:
+     * 1. 🔴 Przed executeQuery() - zapytanie jeszcze nie wykonane
+     * 2. 🔴 Na while(rs.next()) - obserwuj kursor ResultSet
+     * 3. 🔴 Wewnątrz while - sprawdź pobrane wartości
      */
     private static void exercise2_SelectQuery() {
         System.out.println("📝 Ćwiczenie 2: Zapytanie SELECT");
@@ -104,27 +99,33 @@ public class JdbcExercises {
         try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
              Statement stmt = conn.createStatement()) {
 
-            // TODO 1: Utwórz tabelę pirates (id INT, name VARCHAR(100), bounty DECIMAL(10,2))
             stmt.execute("CREATE TABLE pirates (id INT, name VARCHAR(100), bounty DECIMAL(10,2))");
-
-            // TODO 2: Wstaw 3 piratów
             stmt.execute("INSERT INTO pirates VALUES (1, 'Jack Sparrow', 10000)");
             stmt.execute("INSERT INTO pirates VALUES (2, 'Hector Barbossa', 8000)");
             stmt.execute("INSERT INTO pirates VALUES (3, 'Davy Jones', 15000)");
 
             System.out.println("   🏴‍☠️ Piraci w bazie:");
 
-            // TODO 3: Wykonaj SELECT i iteruj po wynikach
-            try (ResultSet rs = stmt.executeQuery(/* SQL */ "SELECT * FROM pirates ORDER BY bounty DESC")) {
-                // TODO 4: Iteruj po wynikach (while + rs.next())
-                while (/* warunek */ rs.next()) {
-                    // TODO 5: Pobierz wartości z kolumn
-                    int id = rs.getInt(/* kolumna */ "id");
-                    String name = rs.getString(/* kolumna */ "name");
-                    BigDecimal bounty = rs.getBigDecimal(/* kolumna */ "bounty");
+            // 🔴 BREAKPOINT 1: Przed executeQuery
+            // 👁️ OBSERWUJ: stmt istnieje, ale rs jeszcze nie
+            try (ResultSet rs = stmt.executeQuery("SELECT * FROM pirates ORDER BY bounty DESC")) {
 
+                // 🔴 BREAKPOINT 2: Na while - kursor jest PRZED pierwszym rekordem
+                // 👁️ OBSERWUJ: rs -> currentRow (początkowo przed pierwszym wierszem)
+                // 💡 ZADANIE: W Evaluate wpisz: rs.getRow() - powinno zwrócić 0
+                while (rs.next()) {
+
+                    // 🔴 BREAKPOINT 3: Wewnątrz pętli
+                    // 👁️ OBSERWUJ: Po każdym next() kursor przesuwa się o 1
+                    // 💡 ZADANIE: Sprawdź rs.getRow() - będzie 1, potem 2, potem 3
+                    int id = rs.getInt("id");
+                    String name = rs.getString("name");
+                    BigDecimal bounty = rs.getBigDecimal("bounty");
+
+                    // 👁️ OBSERWUJ: Wartości id, name, bounty - porównaj z kolejnością ORDER BY
+                    // 💡 PYTANIE: Dlaczego Davy Jones jest pierwszy? (najwyższa nagroda)
                     System.out.printf("   • [%d] %s - nagroda: %.2f złota%n", id, name, bounty);
-                }
+                }// 💡 Po ostatnim next() zwraca false - koniec danych
             }
 
         } catch (SQLException e) {
@@ -133,27 +134,16 @@ public class JdbcExercises {
     }
 
     /**
-     * 🎯 ĆWICZENIE 3: Wstawienie danych używając Statement
+     * 🎯 ĆWICZENIE 3: INSERT używając Statement
      *
-     * 🎯 POZIOM: ŁATWY (szkielet kodu)
+     * 🔍 CO OBSERWOWAĆ W DEBUGGERZE:
+     * - Jak wygląda SQL składany ze stringów
+     * - ⚠️ PROBLEM BEZPIECZEŃSTWA: Co jeśli name = "Black'; DROP TABLE ships;--"
      *
-     * Cel: Nauczyć się wstawiać dane do bazy (i zrozumieć dlaczego to NIE jest bezpieczne)
-     *
-     * Kroki do wykonania:
-     * 1. Uzupełnij CREATE TABLE
-     * 2. Uzupełnij INSERT statement
-     * 3. Uzupełnij SELECT do weryfikacji
-     *
-     * 💡 Wskazówki:
-     * - Statement.execute() dla CREATE i INSERT
-     * - Wartości tekstowe w SQL muszą być w apostrofach: 'Black Pearl'
-     * - Liczby bez apostrofów: 32
-     * - executeQuery() dla SELECT zwraca ResultSet
-     *
-     * ⚠️ UWAGA: Ten sposób jest podatny na SQL Injection! Użyj go tylko do nauki.
-     * W ćwiczeniu 4 przepiszemy to na bezpieczny PreparedStatement.
-     *
-     * 🆘 Jeśli utkniesz, sprawdź JdbcExercisesSolutions.java
+     * 📌 ZADANIE DODATKOWE:
+     * W Evaluate Expression (Alt+F8) wykonaj:
+     * "INSERT INTO ships VALUES (2, '" + "Black'; DROP TABLE ships;--" + "', 10)"
+     * Zobacz jak wygląda ten SQL - to jest SQL Injection!
      */
     private static void exercise3_InsertWithStatement() {
         System.out.println("📝 Ćwiczenie 3: INSERT używając Statement (⚠️ niebezpieczne)");
@@ -161,21 +151,23 @@ public class JdbcExercises {
         try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
              Statement stmt = conn.createStatement()) {
 
-            // TODO 1: Utwórz tabelę ships (id INT, name VARCHAR(100), cannons INT)
             stmt.execute("CREATE TABLE ships (id INT, name VARCHAR(100), cannons INT)");
 
-            // TODO 2: Wstaw statek "Black Pearl" z 32 armatami (id=1)
+            // 🔴 BREAKPOINT: Zatrzymaj się tutaj
+            // 👁️ OBSERWUJ: To jest "surowy" SQL - wartości są wklejone bezpośrednio
+            // ⚠️ NIEBEZPIECZEŃSTWO: Co jeśli użytkownik poda złośliwy tekst?
+            // 💡 ZADANIE: W Evaluate wpisz poniższy kod i zobacz wynikowy SQL:
+            //    String malicious = "Black'; DROP TABLE ships;--";
+            //    "INSERT INTO ships VALUES (2, '" + malicious + "', 10)"
             stmt.execute("INSERT INTO ships VALUES (1, 'Black Pearl', 32)");
 
             System.out.println("   ✅ Dodano statek do bazy");
 
-            // TODO 3: Wykonaj SELECT i wyświetl dodany statek
-            try (ResultSet rs = stmt.executeQuery(/* SQL */ "SELECT * FROM ships")) {
-                while (/* warunek */ rs.next()) {
-                    int id = rs.getInt(/* kolumna */ "id");
-                    String name = rs.getString(/* kolumna */ "name");
-                    int cannons = rs.getInt(/* kolumna */ "cannons");
-
+            try (ResultSet rs = stmt.executeQuery("SELECT * FROM ships")) {
+                while (rs.next()) {
+                    int id = rs.getInt("id");
+                    String name = rs.getString("name");
+                    int cannons = rs.getInt("cannons");
                     System.out.printf("   🚢 [%d] %s - %d armat%n", id, name, cannons);
                 }
             }
@@ -186,29 +178,17 @@ public class JdbcExercises {
     }
 
     /**
-     * 🎯 ĆWICZENIE 4: Wstawienie danych używając PreparedStatement
+     * 🎯 ĆWICZENIE 4: INSERT używając PreparedStatement
      *
-     * 🎯 POZIOM: ŁATWY (szkielet kodu)
+     * 🔍 CO OBSERWOWAĆ W DEBUGGERZE:
+     * - Różnica między Statement a PreparedStatement
+     * - Jak parametry są przechowywane osobno od SQL
+     * - Stan pstmt przed i po ustawieniu parametrów
      *
-     * Cel: Nauczyć się bezpiecznego wstawiania danych z parametrami
-     *
-     * Kroki do wykonania:
-     * 1. Uzupełnij CREATE TABLE
-     * 2. Uzupełnij INSERT z parametrami ?
-     * 3. Uzupełnij setInt, setString, setBigDecimal
-     * 4. Wykonaj executeUpdate()
-     *
-     * 💡 Wskazówki:
-     * - PreparedStatement używa ? jako placeholderów
-     * - Parametry numerowane od 1 (nie od 0!)
-     * - setInt(1, wartość) - pierwszy ?
-     * - setString(2, wartość) - drugi ?
-     * - setBigDecimal(3, wartość) - trzeci ?
-     * - executeUpdate() zwraca liczbę zmienionych rekordów
-     *
-     * ⚠️ UWAGA: Kolumna nazywa się treasure_value (nie value), bo "value" jest słowem zastrzeżonym w H2
-     *
-     * 🆘 Jeśli utkniesz, sprawdź JdbcExercisesSolutions.java
+     * 📌 BREAKPOINTY:
+     * 1. 🔴 Po prepareStatement() - SQL jest skompilowany, parametry puste
+     * 2. 🔴 Po każdym setXxx() - sprawdź jak parametry są dodawane
+     * 3. 🔴 Po executeUpdate() - sprawdź wartość rows
      */
     private static void exercise4_InsertWithPreparedStatement() {
         System.out.println("📝 Ćwiczenie 4: INSERT używając PreparedStatement (✅ bezpieczne)");
@@ -216,21 +196,34 @@ public class JdbcExercises {
         try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
              Statement stmt = conn.createStatement()) {
 
-            // TODO 1: Utwórz tabelę treasures (id INT, name VARCHAR(100), treasure_value DECIMAL(15,2))
             stmt.execute("CREATE TABLE treasures (id INT, name VARCHAR(100), treasure_value DECIMAL(15,2))");
 
-            // TODO 2: Przygotuj INSERT z parametrami ?
             String sql = "INSERT INTO treasures VALUES (?, ?, ?)";
 
+            // 🔴 BREAKPOINT 1: Po prepareStatement
+            // 👁️ OBSERWUJ: pstmt ma SQL z placeholderami ?, parametry jeszcze nie ustawione
+            // 💡 ZADANIE: Rozwiń pstmt i znajdź pole z SQL
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                // TODO 3: Ustaw parametry dla skarbu: (1, "Aztec Gold", 1000000)
-                pstmt.setInt(/* indeks */ 1, /* wartość */ 1);
-                pstmt.setString(/* indeks */ 2, /* wartość */ "Aztec Gold");
-                pstmt.setBigDecimal(/* indeks */ 3, /* wartość */ new BigDecimal("1000000"));
 
-                // TODO 4: Wykonaj INSERT
+                // 🔴 BREAKPOINT 2: Po każdym set - obserwuj jak parametry są dodawane
+                // 👁️ OBSERWUJ: pstmt -> parameters (tablica parametrów)
+                pstmt.setInt(1, 1);
+                // 💡 Teraz parametr[0] = 1
+
+                pstmt.setString(2, "Aztec Gold");
+                // 💡 Teraz parametr[1] = "Aztec Gold"
+
+                pstmt.setBigDecimal(3, new BigDecimal("1000000"));
+                // 💡 Teraz parametr[2] = 1000000
+
+                // 🔴 BREAKPOINT 3: Przed executeUpdate
+                // 👁️ OBSERWUJ: Wszystkie parametry ustawione
+                // 💡 KLUCZOWA RÓŻNICA: Parametry są ODDZIELONE od SQL!
+                //    Nawet jeśli name = "'; DROP TABLE treasures;--"
+                //    to zostanie zapisane jako tekst, nie wykonane jako SQL
                 int rows = pstmt.executeUpdate();
 
+                // 👁️ OBSERWUJ: rows = 1 (jeden rekord wstawiony)
                 System.out.println("   ✅ Wstawiono rekordów: " + rows);
             }
 
@@ -242,22 +235,14 @@ public class JdbcExercises {
     /**
      * 🎯 ĆWICZENIE 5: Obsługa SQLException
      *
-     * 🎯 POZIOM: ŁATWY (szkielet kodu)
+     * 🔍 CO OBSERWOWAĆ W DEBUGGERZE:
+     * - Jak wygląda obiekt SQLException
+     * - Jakie informacje zawiera (message, errorCode, SQLState)
+     * - Jak działa przepływ try-catch
      *
-     * Cel: Nauczyć się prawidłowo obsługiwać błędy SQL
-     *
-     * Kroki do wykonania:
-     * 1. Uzupełnij błędne zapytanie SQL
-     * 2. Uzupełnij wyświetlanie szczegółów błędu
-     *
-     * 💡 Wskazówki:
-     * - To ćwiczenie POWINNO rzucić wyjątek - to jest zamierzone!
-     * - SQLException zawiera szczegółowe informacje o błędzie
-     * - getMessage() - czytelny komunikat
-     * - getErrorCode() - kod błędu specyficzny dla bazy danych
-     * - getSQLState() - standardowy kod SQL (5 znaków)
-     *
-     * 🆘 Jeśli utkniesz, sprawdź JdbcExercisesSolutions.java
+     * 📌 BREAKPOINTY:
+     * 1. 🔴 Na executeQuery() - zaraz zostanie rzucony wyjątek
+     * 2. 🔴 W catch - obserwuj obiekt SQLException
      */
     private static void exercise5_ExceptionHandling() {
         System.out.println("📝 Ćwiczenie 5: Obsługa SQLException");
@@ -265,13 +250,20 @@ public class JdbcExercises {
         try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
              Statement stmt = conn.createStatement()) {
 
-            // TODO 1: Wykonaj BŁĘDNE zapytanie (tabela nie istnieje)
-            stmt.executeQuery(/* błędny SQL */ "SELECT * FROM nieistniejaca_tabela");
+            // 🔴 BREAKPOINT 1: Przed executeQuery
+            // 👁️ OBSERWUJ: Zaraz zostanie rzucony wyjątek
+            // 💡 ZADANIE: Naciśnij F8 (Step Over) i zobacz jak debugger przeskakuje do catch
+            stmt.executeQuery("SELECT * FROM nieistniejaca_tabela");
 
             System.out.println("   ⚠️ Jeśli widzisz tę linię, coś poszło nie tak!");
 
         } catch (SQLException e) {
-            // TODO 2: Wyświetl szczegóły błędu
+            // 🔴 BREAKPOINT 2: W catch
+            // 👁️ OBSERWUJ: Rozwiń obiekt 'e' w panelu Variables
+            //    - message: informacja o błędzie
+            //    - errorCode: kod specyficzny dla H2 (42102 = tabela nie istnieje)
+            //    - SQLState: standardowy kod SQL (42S02 = tabela nie istnieje)
+            // 💡 ZADANIE: W Evaluate wpisz: e.getCause() - sprawdź czy jest łańcuch wyjątków
             System.out.println("   ✅ Złapano wyjątek (to jest OK!)");
             System.out.println("   📝 Komunikat: " + e.getMessage());
             System.out.println("   🔢 Kod błędu: " + e.getErrorCode());
@@ -280,55 +272,35 @@ public class JdbcExercises {
     }
 
     /**
-     * 🎯 ĆWICZENIE 6: Transakcje (ZAAWANSOWANE)
+     * 🎯 ĆWICZENIE 6: Transakcje
      *
-     * 🎯 POZIOM: TRUDNY (tylko wskazówki)
+     * 🔍 CO OBSERWOWAĆ W DEBUGGERZE:
+     * - Stan autoCommit przed i po setAutoCommit(false)
+     * - Dane w tabeli PRZED commit (są widoczne tylko w tej transakcji)
+     * - Co się dzieje przy rollback
      *
-     * Cel: Nauczyć się zarządzać transakcjami (commit/rollback)
+     * 📌 BREAKPOINTY - zaawansowane:
+     * 1. Po setAutoCommit(false) - transakcja rozpoczęta
+     * 2. Po UPDATE - dane zmienione, ale NIE zatwierdzone
+     * 3. Po commit() - zmiany trwałe
      *
-     * Wymagania:
-     * 1. Wyłącz auto-commit (rozpocznij transakcję)
-     * 2. Utwórz tabelę accounts
-     * 3. Wstaw 2 konta: Jack (1000 złota), Barbossa (500 złota)
-     * 4. Wykonaj transfer 200 złota od Jacka do Barbossy (2 UPDATE)
-     * 5. Zatwierdź transakcję
-     * 6. Wyświetl salda po transferze
-     * 7. W przypadku błędu - wycofaj transakcję
-     *
-     * 💡 Wskazówki:
-     * - Transakcja = grupa operacji wykonywanych atomowo (wszystkie albo żadna)
-     * - setAutoCommit(false) - wyłącza automatyczne zatwierdzanie
-     * - commit() - zatwierdza wszystkie zmiany od początku transakcji
-     * - rollback() - cofa wszystkie zmiany od początku transakcji
-     * - Transfer wymaga 2 UPDATE: jeden odejmuje, drugi dodaje
-     * - Oba UPDATE muszą się udać albo żaden (atomowość!)
-     * - W finally ZAWSZE przywróć auto-commit
-     *
-     * 🔍 Struktura rozwiązania:
-     * - try { setAutoCommit(false) + CREATE + INSERT + UPDATE + UPDATE + commit }
-     * - catch { rollback }
-     * - finally { setAutoCommit(true) }
-     *
-     * 🆘 Jeśli utkniesz, sprawdź JdbcExercisesSolutions.java
+     * 💡 ZADANIE: Zaimplementuj transfer i debuguj krok po kroku
      */
     private static void exercise6_Transactions() {
         System.out.println("📝 Ćwiczenie 6: Transakcje (commit/rollback)");
 
-        // TODO: Zaimplementuj pełną transakcję z transferem złota
-        // Struktura:
-        // try (Connection conn = ...; Statement stmt = ...) {
-        //     // Wyłącz auto-commit
-        //     // Utwórz tabelę accounts (id INT, name VARCHAR(100), balance DECIMAL(10,2))
-        //     // Wstaw 2 konta
-        //     // Wykonaj 2 UPDATE (transfer)
-        //     // Zatwierdź transakcję
-        //     // Wyświetl salda (SELECT)
-        // } catch (SQLException e) {
-        //     // Wycofaj transakcję
-        // } finally {
-        //     // Przywróć auto-commit
-        // }
+        // TODO: Zaimplementuj transakcję z transferem złota
+        // 🔴 BREAKPOINT: Po setAutoCommit(false)
+        // 👁️ OBSERWUJ: conn.getAutoCommit() = false
+        //
+        // 🔴 BREAKPOINT: Po pierwszym UPDATE
+        // 👁️ OBSERWUJ: Dane zmienione, ale jeszcze nie zatwierdzone
+        // 💡 EKSPERYMENT: Otwórz H2 Console i sprawdź dane - nie zobaczysz zmian!
+        //    (bo transakcja nie jest jeszcze zatwierdzona)
+        //
+        // 🔴 BREAKPOINT: Po commit()
+        // 👁️ OBSERWUJ: Teraz zmiany są trwałe
 
+        System.out.println("   ⚠️ TODO: Zaimplementuj transakcję");
     }
 }
-

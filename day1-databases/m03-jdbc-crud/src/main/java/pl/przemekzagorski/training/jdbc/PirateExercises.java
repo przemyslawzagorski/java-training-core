@@ -17,6 +17,14 @@ import java.util.List;
  * 3. Po uzupełnieniu uruchom metodę main() - zobaczysz wyniki
  * 4. Jeśli utkniesz - sprawdź PirateExercisesSolutions.java
  *
+ * ═══════════════════════════════════════════════════════════════════
+ * 📋 INSTRUKCJA DEBUGOWANIA:
+ * ═══════════════════════════════════════════════════════════════════
+ * 1. Ustaw breakpointy w miejscach oznaczonych 🔴 BREAKPOINT
+ * 2. Uruchom w trybie Debug (Shift+F9 w IntelliJ)
+ * 3. Obserwuj zmienne w panelu "Variables"
+ * 4. Używaj F8 (Step Over) do przechodzenia linia po linii
+ *
  * WAŻNE KONCEPCJE:
  * - PreparedStatement - bezpieczne zapytania z parametrami (?)
  * - try-with-resources - automatyczne zamykanie zasobów
@@ -140,11 +148,17 @@ public class PirateExercises {
      *
      * 🎯 POZIOM: ŁATWY (gotowy kod - uruchom i obserwuj!)
      *
-     * 🔍 OBSERWUJ:
-     * - PreparedStatement chroni przed SQL Injection (parametr ?)
-     * - try-with-resources automatycznie zamyka zasoby
-     * - Indeksy parametrów zaczynają się od 1, nie od 0!
-     * - ResultSet to kursor - next() przesuwa do następnego rekordu
+     * 📋 INSTRUKCJA DEBUGOWANIA:
+     * ════════════════════════════════════════════════════════════════
+     * 1. Ustaw breakpointy w miejscach oznaczonych 🔴 BREAKPOINT
+     * 2. Uruchom w trybie Debug (Shift+F9)
+     * 3. Obserwuj zmienne w panelu "Variables"
+     * 4. Używaj F8 (Step Over) do przechodzenia linia po linii
+     *
+     * 🔍 CO OBSERWOWAĆ:
+     * - Jak PreparedStatement przechowuje SQL z parametrem ?
+     * - Jak parametr jest ustawiany (indeks zaczyna się od 1!)
+     * - Jak ResultSet iteruje po wynikach (kursor)
      *
      * ❓ PYTANIE: Co się stanie jeśli użyjemy Statement zamiast PreparedStatement?
      * 💡 ODPOWIEDŹ: Ryzyko SQL Injection! Nigdy nie konkatenuj SQL z danymi użytkownika!
@@ -158,31 +172,38 @@ public class PirateExercises {
     private static List<String> exercise1_FindByBountyGreaterThan(Connection conn, BigDecimal minBounty) {
         List<String> names = new ArrayList<>();
 
-        // 🔍 OBSERWUJ: SQL z parametrem ? - BEZPIECZNE przed SQL Injection!
+        // 🔴 BREAKPOINT 1: Ustaw tutaj - SQL z parametrem ? (BEZPIECZNE!)
+        // 👁️ OBSERWUJ: Zmienna sql zawiera "?" zamiast wartości
+        // 💡 To chroni przed SQL Injection - parametr NIE jest częścią SQL!
         String sql = "SELECT name FROM pirates WHERE bounty > ?";
 
-        // 🔍 OBSERWUJ: try-with-resources - PreparedStatement zostanie automatycznie zamknięty
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            // 🔍 OBSERWUJ: Ustawiamy parametr (indeksy zaczynają się od 1, nie od 0!)
+            // 🔴 BREAKPOINT 2: Ustaw tutaj - PO prepareStatement, PRZED setBigDecimal
+            // 👁️ OBSERWUJ w panelu Variables:
+            //    - stmt -> rozwiń i znajdź pole z SQL
+            //    - Parametry jeszcze nie ustawione!
+            // 💡 ZADANIE: W Evaluate (Alt+F8) wpisz: stmt.toString()
+
             stmt.setBigDecimal(1, minBounty);
 
-            // 🔍 OBSERWUJ: Wykonujemy zapytanie SELECT
+            // 🔴 BREAKPOINT 3: Ustaw tutaj - PO setBigDecimal
+            // 👁️ OBSERWUJ: Teraz parametr jest ustawiony
+            // 💡 ZADANIE: W Evaluate wpisz: stmt.toString() - zobacz różnicę!
+            // 💡 UWAGA: Indeks parametru to 1, nie 0! (JDBC liczy od 1)
+
             try (ResultSet rs = stmt.executeQuery()) {
-                // 🔍 OBSERWUJ: Iterujemy po wynikach
+                // 🔴 BREAKPOINT 4: Ustaw tutaj - wewnątrz while
+                // 👁️ OBSERWUJ: rs -> currentRow (pozycja kursora)
+                // 💡 ZADANIE: Sprawdź rs.getRow() w Evaluate - zmienia się po każdym next()
                 while (rs.next()) {
-                    // 🔍 OBSERWUJ: Pobieramy wartość kolumny "name" i dodajemy do listy
-                    names.add(rs.getString("name"));
+                    String name = rs.getString("name");
+                    // 👁️ OBSERWUJ: Wartość name - porównaj z danymi w bazie
+                    names.add(name);
                 }
             }
         } catch (SQLException e) {
-            // 🔍 OBSERWUJ: Opakowujemy SQLException w RuntimeException
             throw new RuntimeException("Błąd przy wyszukiwaniu piratów", e);
         }
-
-        // 🧪 EKSPERYMENT: Odkomentuj poniższe linie i zobacz co się stanie!
-        // System.out.println("\n🧪 EKSPERYMENT: Szukam piratów z nagrodą > 1000");
-        // List<String> allRich = exercise1_FindByBountyGreaterThan(conn, new BigDecimal("1000"));
-        // System.out.println("   Znaleziono: " + allRich);
 
         return names;
     }
@@ -195,16 +216,16 @@ public class PirateExercises {
      *
      * 🎯 POZIOM: ŁATWY (gotowy kod - uruchom i obserwuj!)
      *
-     * 🔍 OBSERWUJ:
-     * - UPDATE ma składnię: UPDATE tabela SET kolumna = ? WHERE id = ?
+     * 📋 INSTRUKCJA DEBUGOWANIA:
+     * ════════════════════════════════════════════════════════════════
+     * Breakpointy pokazują KOLEJNOŚĆ parametrów i wartość zwracaną przez executeUpdate()
+     *
+     * 🔍 CO OBSERWOWAĆ:
      * - Kolejność parametrów: 1=bounty (SET), 2=id (WHERE)
      * - executeUpdate() zwraca liczbę zmienionych wierszy
-     * - Dla istniejącego pirata powinno zwrócić 1
      *
      * ❓ PYTANIE: Co się stanie jeśli podamy nieistniejące ID?
      * 💡 ODPOWIEDŹ: executeUpdate() zwróci 0 (żaden wiersz nie został zmieniony)
-     *
-     * 🆘 Jeśli chcesz zobaczyć więcej przykładów, sprawdź PirateExercisesSolutions.java
      *
      * @param conn połączenie do bazy
      * @param pirateId ID pirata
@@ -212,23 +233,22 @@ public class PirateExercises {
      * @return liczba zaktualizowanych rekordów (powinna być 1)
      */
     private static int exercise2_UpdateBounty(Connection conn, Long pirateId, BigDecimal newBounty) {
-        // 🔍 OBSERWUJ: SQL UPDATE z dwoma parametrami
         String sql = "UPDATE pirates SET bounty = ? WHERE id = ?";
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            // 🔍 OBSERWUJ: Ustawiamy parametry W KOLEJNOŚCI jak w SQL!
+            // 🔴 BREAKPOINT 1: Ustaw tutaj - PRZED ustawieniem parametrów
+            // 👁️ OBSERWUJ: Kolejność parametrów MUSI odpowiadać kolejności ? w SQL!
+            //    SQL: UPDATE ... SET bounty = ? WHERE id = ?
+            //                        ↑ param 1    ↑ param 2
+
             stmt.setBigDecimal(1, newBounty);  // Pierwszy ? (SET bounty = ?)
             stmt.setLong(2, pirateId);          // Drugi ? (WHERE id = ?)
 
-            // 🔍 OBSERWUJ: executeUpdate() zwraca liczbę zmienionych wierszy
-            // Powinno być 1, jeśli pirat istnieje
+            // 🔴 BREAKPOINT 2: Ustaw tutaj - PO executeUpdate
+            // 👁️ OBSERWUJ: Wartość updated - ile wierszy zostało zmienionych?
+            // 💡 ZADANIE: Zmień pirateId na 999 i zobacz że updated = 0
             int updated = stmt.executeUpdate();
 
-            // 🧪 EKSPERYMENT: Odkomentuj i zobacz co się stanie!
-            // System.out.println("🧪 EKSPERYMENT: Zaktualizowano " + updated + " wierszy");
-            // if (updated == 0) {
-            //     System.out.println("   ⚠️ Pirat o ID " + pirateId + " nie istnieje!");
-            // }
 
             return updated;
 
@@ -274,35 +294,103 @@ public class PirateExercises {
         String sql = ""; // <-- UZUPEŁNIJ
 
         try {
+            // 🔴 BREAKPOINT 1: PRZED setAutoCommit(false)
+            // 👁️ OBSERWUJ w Variables:
+            //    - conn.getAutoCommit() - sprawdź w Evaluate Expression (powinno być true)
+            // 💡 KLUCZOWA OBSERWACJA: autoCommit = true oznacza:
+            //    - Każde SQL (INSERT/UPDATE/DELETE) jest natychmiast zatwierdzane
+            //    - Nie możesz cofnąć zmian (brak rollback)
+            //    - Dla transakcji MUSISZ wyłączyć autoCommit!
+
             // TODO 2: Wyłącz auto-commit (rozpocznij transakcję)
             // Hint: conn.setAutoCommit(false);
+
+            // 🔴 BREAKPOINT 2: PO setAutoCommit(false)
+            // 👁️ OBSERWUJ w Variables:
+            //    - conn.getAutoCommit() - sprawdź w Evaluate (powinno być false)
+            // 💡 KLUCZOWA OBSERWACJA: Transakcja rozpoczęta!
+            //    - Zmiany NIE będą widoczne dla innych sesji do commit()
+            //    - Możesz cofnąć zmiany przez rollback()
+            // 💡 ZADANIE: Otwórz H2 Console w przeglądarce (http://localhost:8082)
+            //    i wykonaj: SELECT * FROM pirates WHERE rank = 'Sailor'
+            //    Zobaczysz 2 rekordy (Pintel, Ragetti)
 
             try (PreparedStatement stmt = conn.prepareStatement(sql)) {
                 // TODO 3: Ustaw parametr rank
                 // Hint: stmt.setString(1, rank);
 
+                // 🔴 BREAKPOINT 3: PRZED executeUpdate()
+                // 👁️ OBSERWUJ w Variables:
+                //    - stmt - PreparedStatement z parametrem rank
+                //    - sql - zapytanie DELETE FROM pirates WHERE rank = ?
+                // 💡 ZADANIE: Sprawdź stmt.toString() w Evaluate
+                //    Zobaczysz zapytanie z podstawionym parametrem
+
                 // TODO 4: Wykonaj DELETE i zapisz wynik
                 // Hint: int deleted = stmt.executeUpdate();
+
+                // 🔴 BREAKPOINT 4: PO executeUpdate(), PRZED commit()
+                // 👁️ OBSERWUJ w Variables:
+                //    - deleted - liczba usuniętych rekordów (powinno być 2)
+                // 💡 KLUCZOWA OBSERWACJA: DELETE wykonany, ale NIE zatwierdzony!
+                //    - W tej sesji: rekordy usunięte (w pamięci transakcji)
+                //    - W innych sesjach: rekordy WCIĄŻ WIDOCZNE!
+                // 💡 EKSPERYMENT: Sprawdź w H2 Console:
+                //    SELECT * FROM pirates WHERE rank = 'Sailor'
+                //    WCIĄŻ zobaczysz 2 rekordy! (izolacja transakcji!)
+                // 💡 PYTANIE: Dlaczego inne sesje nie widzą zmian?
+                //    Odpowiedź: Transakcja NIE została zatwierdzona (brak commit)
+                //    Poziom izolacji READ_COMMITTED - inne sesje widzą tylko zatwierdzone dane
 
                 // TODO 5: Zatwierdź transakcję
                 // Hint: conn.commit();
                 // Hint: System.out.println("   ✅ COMMIT - transakcja zatwierdzona");
+
+                // 🔴 BREAKPOINT 5: PO commit()
+                // 👁️ OBSERWUJ: Logi w konsoli - zobaczysz "✅ COMMIT"
+                // 💡 KLUCZOWA OBSERWACJA: Transakcja zatwierdzona!
+                //    - Zmiany są TRWAŁE w bazie danych
+                //    - Inne sesje TERAZ zobaczą zmiany
+                // 💡 EKSPERYMENT: Odśwież zapytanie w H2 Console:
+                //    SELECT * FROM pirates WHERE rank = 'Sailor'
+                //    TERAZ zobaczysz 0 rekordów! (commit wykonany!)
 
                 // TODO 6: Zwróć liczbę usuniętych rekordów
                 // Hint: return deleted;
             }
 
         } catch (SQLException e) {
+            // 🔴 BREAKPOINT 6: W bloku catch (tylko jeśli wystąpi błąd)
+            // 👁️ OBSERWUJ w Variables:
+            //    - e.getMessage() - komunikat błędu SQL
+            // 💡 KLUCZOWA OBSERWACJA: Błąd SQL - trzeba cofnąć transakcję!
+            //    - Bez rollback() zmiany mogą pozostać w nieokreślonym stanie
+            //    - rollback() cofa WSZYSTKIE zmiany od setAutoCommit(false)
+
             // TODO 7: W przypadku błędu - wycofaj transakcję
-            // Hint: System.out.println("   ⚠️ BŁĄD: " + e.getMessage());
-            // Hint: try { conn.rollback(); System.out.println("   ↩️ ROLLBACK - zmiany cofnięte"); }
-            // Hint: catch (SQLException rollbackEx) { System.err.println("Błąd rollback: " + rollbackEx.getMessage()); }
+            System.out.println("   ⚠️ BŁĄD: " + e.getMessage());
+            try {
+                // Hint: conn.rollback();
+                System.out.println("   ↩️ ROLLBACK - zmiany cofnięte");
+            } catch (Exception rollbackEx) {
+                System.err.println("Błąd podczas rollback: " + rollbackEx.getMessage());
+            }
             throw new RuntimeException("Błąd przy usuwaniu piratów", e);
 
         } finally {
+            // 🔴 BREAKPOINT 7: W bloku finally (ZAWSZE wykonywany)
+            // 👁️ OBSERWUJ: Ten blok wykona się ZAWSZE (sukces lub błąd)
+            // 💡 KLUCZOWA OBSERWACJA: Przywracanie autoCommit w finally!
+            //    - finally wykonuje się ZAWSZE (nawet po return lub exception)
+            //    - Bez tego kolejne operacje działałyby w trybie transakcyjnym
+            //    - To jest WZORZEC - zawsze przywracaj stan początkowy!
+
             // TODO 8: ZAWSZE przywróć auto-commit
-            // Hint: try { conn.setAutoCommit(true); }
-            // Hint: catch (SQLException e) { System.err.println("Błąd auto-commit: " + e.getMessage()); }
+            try {
+                // Hint: conn.setAutoCommit(true);
+            } catch (Exception e) {
+                System.err.println("Błąd przy przywracaniu auto-commit: " + e.getMessage());
+            }
         }
 
         return 0; // <-- ZMIEŃ - zaimplementuj TODO 6
@@ -408,21 +496,118 @@ public class PirateExercises {
         // TODO 1: Napisz SQL do aktualizacji ship_id pirata
         String updateSql = ""; // <-- UZUPEŁNIJ: UPDATE pirates SET ship_id = ? WHERE id = ?
 
+        // 🔴 BREAKPOINT 1: PRZED rozpoczęciem transakcji
+        // 👁️ OBSERWUJ w Variables:
+        //    - pirateId = 4 (Joshamee Gibbs)
+        //    - newShipId = 2 (Flying Dutchman) lub 999 (nieistniejący)
+        // 💡 KLUCZOWA OBSERWACJA: Transakcja wieloetapowa!
+        //    - Krok 1: Sprawdź czy pirat istnieje
+        //    - Krok 2: Sprawdź czy statek istnieje
+        //    - Krok 3: Wykonaj UPDATE
+        //    - Wszystko w JEDNEJ transakcji (atomowość!)
+        // 💡 PYTANIE: Dlaczego walidacja w transakcji?
+        //    Odpowiedź: Zapobiega "race condition" - między sprawdzeniem
+        //    a UPDATE ktoś inny mógłby usunąć pirata lub statek!
+
         // TODO 2: Zaimplementuj pełną transakcję z walidacją
         // Struktura:
         // try {
+        //     // 🔴 BREAKPOINT 2: PO setAutoCommit(false)
+        //     // 👁️ OBSERWUJ: Transakcja rozpoczęta
+        //     // 💡 KLUCZOWA OBSERWACJA: Wszystkie kroki będą w JEDNEJ transakcji
+        //     //    - Jeśli którykolwiek krok się nie powiedzie → ROLLBACK wszystkiego
+        //     //    - Jeśli wszystkie kroki OK → COMMIT wszystkiego
+        //     //    To jest ATOMOWOŚĆ (all-or-nothing)!
+        //
         //     // Rozpocznij transakcję
+        //     // conn.setAutoCommit(false);
+        //
+        //     // 🔴 BREAKPOINT 3: PO sprawdzeniu czy pirat istnieje
+        //     // 👁️ OBSERWUJ w Variables:
+        //     //    - rs.getLong(1) - COUNT(*) z zapytania (0 = nie istnieje, 1 = istnieje)
+        //     // 💡 ZADANIE: Sprawdź w Evaluate: rs.getLong(1)
+        //     // 💡 KLUCZOWA OBSERWACJA: Walidacja PRZED UPDATE
+        //     //    - Jeśli pirat nie istnieje → rzuć SQLException
+        //     //    - SQLException spowoduje ROLLBACK (w bloku catch)
+        //
         //     // Sprawdź czy pirat istnieje (jeśli COUNT = 0, rzuć SQLException)
+        //
+        //     // 🔴 BREAKPOINT 4: PO sprawdzeniu czy statek istnieje
+        //     // 👁️ OBSERWUJ w Variables:
+        //     //    - rs.getLong(1) - COUNT(*) dla statku
+        //     // 💡 EKSPERYMENT: Jeśli newShipId = 999 (nieistniejący statek):
+        //     //    - COUNT będzie 0
+        //     //    - Zostanie rzucony SQLException
+        //     //    - Transakcja zostanie wycofana (ROLLBACK)
+        //     //    - Metoda zwróci false
+        //
         //     // Sprawdź czy statek istnieje (jeśli COUNT = 0, rzuć SQLException)
+        //
+        //     // 🔴 BREAKPOINT 5: PRZED executeUpdate()
+        //     // 👁️ OBSERWUJ w Variables:
+        //     //    - stmt - PreparedStatement z UPDATE
+        //     //    - Parametry: ship_id = newShipId, id = pirateId
+        //     // 💡 KLUCZOWA OBSERWACJA: Walidacja przeszła pomyślnie!
+        //     //    - Pirat istnieje
+        //     //    - Statek istnieje
+        //     //    - Możemy bezpiecznie wykonać UPDATE
+        //
         //     // Wykonaj UPDATE
+        //
+        //     // 🔴 BREAKPOINT 6: PRZED commit()
+        //     // 👁️ OBSERWUJ: UPDATE wykonany, ale NIE zatwierdzony
+        //     // 💡 KLUCZOWA OBSERWACJA: Wszystkie kroki OK!
+        //     //    - Walidacja pirata: ✅
+        //     //    - Walidacja statku: ✅
+        //     //    - UPDATE wykonany: ✅
+        //     //    - Teraz możemy zatwierdzić CAŁĄ transakcję
+        //     // 💡 ATOMOWOŚĆ: Albo wszystko (commit), albo nic (rollback)
+        //
         //     // Zatwierdź transakcję
+        //     // conn.commit();
+        //     // System.out.println("   ✅ COMMIT - transfer zakończony pomyślnie");
+        //
         //     // Zwróć true
+        //     // return true;
+        //
         // } catch (SQLException e) {
+        //     // 🔴 BREAKPOINT 7: W bloku catch (tylko jeśli błąd)
+        //     // 👁️ OBSERWUJ w Variables:
+        //     //    - e.getMessage() - komunikat błędu (np. "Statek o ID=999 nie istnieje!")
+        //     // 💡 KLUCZOWA OBSERWACJA: Błąd w KTÓRYMKOLWIEK kroku!
+        //     //    - Może być błąd walidacji (pirat/statek nie istnieje)
+        //     //    - Może być błąd SQL (constraint violation)
+        //     //    - ROLLBACK cofa WSZYSTKIE zmiany (nawet jeśli UPDATE się wykonał)
+        //     // 💡 ATOMOWOŚĆ: Jeśli cokolwiek się nie powiedzie → cofamy WSZYSTKO
+        //
         //     // Wypisz błąd
+        //     // System.out.println("   ⚠️ BŁĄD: " + e.getMessage());
+        //
         //     // Wycofaj transakcję
+        //     // try {
+        //     //     conn.rollback();
+        //     //     System.out.println("   ↩️ ROLLBACK - transfer anulowany");
+        //     // } catch (SQLException rollbackEx) {
+        //     //     System.err.println("Błąd podczas rollback: " + rollbackEx.getMessage());
+        //     // }
+        //
         //     // Zwróć false
+        //     // return false;
+        //
         // } finally {
+        //     // 🔴 BREAKPOINT 8: W bloku finally (ZAWSZE)
+        //     // 👁️ OBSERWUJ: Ten blok wykona się ZAWSZE
+        //     // 💡 KLUCZOWA OBSERWACJA: Przywracanie stanu początkowego
+        //     //    - finally wykonuje się ZAWSZE (sukces lub błąd)
+        //     //    - Przywracamy autoCommit = true
+        //     //    - Następne operacje będą działać normalnie (bez transakcji)
+        //
         //     // Przywróć auto-commit
+        //     // try {
+        //     //     conn.setAutoCommit(true);
+        //     // } catch (SQLException e) {
+        //     //     System.err.println("Błąd przy przywracaniu auto-commit: " + e.getMessage());
+        //     // }
         // }
 
         return false; // <-- ZMIEŃ - zaimplementuj logikę powyżej

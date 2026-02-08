@@ -274,6 +274,17 @@ public class QueryExercises {
      * 🆘 Porównaj z QueryExercisesSolutions.java dla wyjaśnień
      */
     private static void exercise4() {
+        // 🔴 BREAKPOINT 1: PRZED utworzeniem zapytania
+        // 👁️ OBSERWUJ: Zaraz wykonamy zapytanie z SELECT NEW (projekcja do DTO)
+        // 💡 KLUCZOWA OBSERWACJA: DTO vs Encja - różnica w wydajności!
+        //    - Encja (Pirate): Hibernate ładuje WSZYSTKIE kolumny + zarządza stanem
+        //    - DTO (PirateDTO): Hibernate ładuje TYLKO wybrane kolumny, bez zarządzania stanem
+        // 💡 PYTANIE: Kiedy używać DTO zamiast encji?
+        //    Odpowiedź: Gdy potrzebujesz tylko ODCZYTU danych (bez modyfikacji)
+        //    - Raporty, listy, eksport danych
+        //    - API REST (zwracanie JSON)
+        //    - Wydajność (mniej danych z bazy, brak dirty checking)
+
         // TODO: Uzupełnij zapytanie z SELECT NEW
         String jpql = """
             SELECT NEW pl.przemekzagorski.training.jpa.dto.PirateDTO(
@@ -284,13 +295,51 @@ public class QueryExercises {
             ORDER BY p.bounty DESC
             """;
 
+        // 🔴 BREAKPOINT 2: PO utworzeniu zapytania, PRZED getResultList()
+        // 👁️ OBSERWUJ w Variables:
+        //    - jpql - zapytanie z SELECT NEW (pełna nazwa klasy DTO!)
+        // 💡 ZADANIE: Sprawdź jpql w Evaluate - zobacz strukturę SELECT NEW
+        // 💡 KLUCZOWA OBSERWACJA: SELECT NEW wymaga:
+        //    - Pełnej nazwy klasy (pl.przemekzagorski.training.jpa.dto.PirateDTO)
+        //    - Argumentów pasujących do konstruktora DTO
+        //    - Kolejność argumentów musi się zgadzać!
+
         List<PirateDTO> captains = em.createQuery(jpql, PirateDTO.class)
                 .getResultList();
+
+        // 🔴 BREAKPOINT 3: PO getResultList()
+        // 👁️ OBSERWUJ w Variables:
+        //    - captains - lista obiektów PirateDTO (NIE Pirate!)
+        //    - captains[0] - rozwińcie i zobacz pola: name, rank, bounty
+        // 💡 ZADANIE: Sprawdź w Evaluate:
+        //    - captains.get(0).getClass() - zwróci PirateDTO (nie Pirate!)
+        //    - captains.get(0) instanceof PirateDTO - zwróci true
+        //    - captains.get(0) instanceof Pirate - zwróci false
+        // 💡 KLUCZOWA OBSERWACJA: DTO to zwykły obiekt Java!
+        //    - NIE jest zarządzany przez EntityManager (em.contains() = false)
+        //    - NIE ma dirty checking (zmiany nie są śledzone)
+        //    - NIE ma lazy loading (wszystkie dane załadowane od razu)
+        //    - To jest PROJEKCJA - tylko wybrane kolumny z bazy
+        // 💡 WYDAJNOŚĆ: Porównaj SQL w logach:
+        //    - SELECT NEW: SELECT p.name, p.rank, p.bounty FROM pirates...
+        //    - Encja: SELECT p.* FROM pirates... (wszystkie kolumny!)
+        //    Dla tabeli z 50 kolumnami różnica jest OGROMNA!
 
         System.out.println("📋 Kapitanowie jako DTO:");
         captains.forEach(dto ->
                 System.out.printf("  ⚓ %s (%s): $%s%n",
                         dto.name(), dto.rank(), dto.bounty()));
+
+        // 🔴 BREAKPOINT 4: Po wyświetleniu wyników
+        // 💡 EKSPERYMENT: Porównaj z zapytaniem zwracającym encje:
+        //    String jpqlEntity = "SELECT p FROM Pirate p WHERE p.rank = 'Captain'";
+        //    List<Pirate> entities = em.createQuery(jpqlEntity, Pirate.class).getResultList();
+        //    - entities[0] - zobaczysz WSZYSTKIE pola (ship, island, etc.)
+        //    - em.contains(entities[0]) - zwróci true (zarządzane przez EM)
+        //    - entities[0].setName("X") - zmiana będzie śledzona (dirty checking)
+        // 💡 KLUCZOWA OBSERWACJA: Wybór DTO vs Encja zależy od przypadku użycia:
+        //    - DTO: Odczyt danych, raporty, API (wydajność!)
+        //    - Encja: Modyfikacja danych, logika biznesowa (zarządzanie stanem!)
 
         System.out.println("\n✅ Ćwiczenie 4 wykonane! DTO vs Encja - widzisz różnicę?");
     }
@@ -339,20 +388,100 @@ public class QueryExercises {
      * 🆘 Jeśli utkniesz, sprawdź QueryExercisesSolutions.java
      */
     private static void exercise5() {
+        // 🔴 BREAKPOINT 1: PRZED utworzeniem zapytania
+        // 👁️ OBSERWUJ: Zaraz wykonamy zapytanie z GROUP BY i HAVING (agregacja!)
+        // 💡 KLUCZOWA OBSERWACJA: GROUP BY vs WHERE - różnica!
+        //    - WHERE: filtruje POJEDYNCZE wiersze PRZED grupowaniem
+        //      Przykład: WHERE p.rank = 'Captain' (tylko kapitanowie)
+        //    - HAVING: filtruje GRUPY PO agregacji
+        //      Przykład: HAVING COUNT(p) >= 2 (tylko statki z min. 2 piratami)
+        // 💡 PYTANIE: Dlaczego nie możemy użyć WHERE COUNT(p) >= 2?
+        //    Odpowiedź: COUNT() to funkcja agregująca - działa na GRUPACH, nie wierszach!
+        //    WHERE działa PRZED grupowaniem, więc COUNT() jeszcze nie istnieje!
+
         // TODO: Napisz zapytanie z GROUP BY i HAVING
         String jpql = """
-            TODO: Uzupełnij zapytanie z agregacją
+            SELECT NEW pl.przemekzagorski.training.jpa.dto.ShipSummaryDTO(
+                s.name,
+                s.type,
+                COUNT(p),
+                SUM(p.bounty)
+            )
+            FROM Ship s
+            LEFT JOIN s.crew p
+            GROUP BY s.id, s.name, s.type
+            HAVING COUNT(p) >= 2
+            ORDER BY SUM(p.bounty) DESC
             """;
+
+        // 🔴 BREAKPOINT 2: PO utworzeniu zapytania, PRZED getResultList()
+        // 👁️ OBSERWUJ w Variables:
+        //    - jpql - zapytanie z GROUP BY, COUNT(), SUM(), HAVING
+        // 💡 ZADANIE: Przeanalizuj strukturę zapytania:
+        //    1. SELECT NEW ShipSummaryDTO(...) - projekcja do DTO
+        //    2. COUNT(p) - liczy piratów w każdej grupie (statku)
+        //    3. SUM(p.bounty) - sumuje nagrody w każdej grupie
+        //    4. LEFT JOIN s.crew p - łączy statki z załogą (LEFT = statki bez załogi też!)
+        //    5. GROUP BY s.id, s.name, s.type - grupuje po statku
+        //    6. HAVING COUNT(p) >= 2 - filtruje grupy (min. 2 piratów)
+        //    7. ORDER BY SUM(p.bounty) DESC - sortuje po sumie nagród
+        // 💡 KLUCZOWA OBSERWACJA: GROUP BY wymaga WSZYSTKICH pól nie-agregatowych!
+        //    - Pola agregatowe: COUNT(p), SUM(p.bounty) - obliczane dla grupy
+        //    - Pola nie-agregatowe: s.id, s.name, s.type - muszą być w GROUP BY!
+        //    - Dlaczego? Bo SQL musi wiedzieć jak grupować wiersze
+        // 💡 PYTANIE: Dlaczego LEFT JOIN zamiast INNER JOIN?
+        //    Odpowiedź: LEFT JOIN zwraca statki NAWET BEZ załogi
+        //    (ale HAVING COUNT(p) >= 2 i tak je odfiltruje)
 
         List<ShipSummaryDTO> summaries = em.createQuery(jpql, ShipSummaryDTO.class)
                 .getResultList();
+
+        // 🔴 BREAKPOINT 3: PO getResultList()
+        // 👁️ OBSERWUJ w Variables:
+        //    - summaries - lista ShipSummaryDTO (statystyki statków)
+        //    - summaries[0] - rozwińcie i zobacz:
+        //      * shipName - nazwa statku (z GROUP BY)
+        //      * shipType - typ statku (z GROUP BY)
+        //      * crewCount - COUNT(p) - liczba piratów w grupie
+        //      * totalBounty - SUM(p.bounty) - suma nagród w grupie
+        // 💡 ZADANIE: Sprawdź w Evaluate:
+        //    - summaries.size() - liczba statków (tylko te z >= 2 piratami!)
+        //    - summaries.get(0).crewCount() - liczba piratów na pierwszym statku
+        //    - summaries.get(0).totalBounty() - suma nagród na pierwszym statku
+        // 💡 KLUCZOWA OBSERWACJA: Agregacja w SQL!
+        //    - Hibernate wykonał JEDNO zapytanie SQL z GROUP BY
+        //    - Baza danych policzyła COUNT() i SUM() (nie Java!)
+        //    - To jest WYDAJNE - agregacja w bazie, nie w pamięci
+        // 💡 WYDAJNOŚĆ: Porównaj z alternatywą w Javie:
+        //    - Pobrać wszystkie statki: SELECT s FROM Ship s
+        //    - Dla każdego statku pobrać załogę: s.getCrew() (N+1 problem!)
+        //    - W Javie policzyć: crew.size(), crew.stream().map(p -> p.getBounty()).reduce(...)
+        //    - To byłoby WOLNE i NIEEFEKTYWNE!
+        //    GROUP BY robi to w JEDNYM zapytaniu SQL!
 
         System.out.println("📋 Statystyki statków (min. 2 piratów):");
         summaries.forEach(s ->
                 System.out.printf("  🚢 %s (%s): %d piratów, $%s%n",
                         s.shipName(), s.shipType(), s.crewCount(), s.totalBounty()));
 
-        System.out.println("\n⏳ TODO: Uzupełnij zapytanie - to trudne, ale dasz radę!");
+        // 🔴 BREAKPOINT 4: Po wyświetleniu wyników
+        // 💡 EKSPERYMENT: Sprawdź logi SQL w konsoli:
+        //    SELECT s.name, s.type, COUNT(p.id), SUM(p.bounty)
+        //    FROM ship s LEFT JOIN pirate p ON s.id = p.ship_id
+        //    GROUP BY s.id, s.name, s.type
+        //    HAVING COUNT(p.id) >= 2
+        //    ORDER BY SUM(p.bounty) DESC
+        // 💡 KLUCZOWA OBSERWACJA: JPQL → SQL
+        //    - JPQL operuje na encjach (Ship, Pirate)
+        //    - Hibernate tłumaczy na SQL (ship, pirate)
+        //    - GROUP BY, HAVING, COUNT, SUM - to standardowy SQL!
+        // 💡 ZASTOSOWANIA GROUP BY:
+        //    - Statystyki (liczba zamówień na klienta)
+        //    - Raporty (suma sprzedaży na region)
+        //    - Agregacje (średnia ocena na produkt)
+        //    - Top N (10 najlepszych sprzedawców)
+
+        System.out.println("\n✅ Ćwiczenie 5 wykonane! GROUP BY i HAVING - potężne narzędzie!");
     }
 
     // ========================================================================

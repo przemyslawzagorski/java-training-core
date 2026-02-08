@@ -244,11 +244,41 @@ public class RelationsExercises {
             em.persist(member);
             memberId = member.getId();
 
+            // 🔴 BREAKPOINT 1: PRZED dodaniem do kolekcji
+            // 👁️ OBSERWUJ w Variables:
+            //    - ship.crew - rozwiń kolekcję, powinna być pusta (size = 0)
+            //    - member.ship = null (brak relacji)
+            // 💡 ZADANIE: Sprawdź ship.getCrew().size() w Evaluate - powinno być 0
+            // 💡 KLUCZOWA OBSERWACJA: Obie strony relacji są niezależne w pamięci
+            //    - Ship ma kolekcję crew (strona odwrotna, mappedBy="ship")
+            //    - CrewMember ma pole ship (strona właściciela, @ManyToOne)
+
             // ❌ BŁĘDNY SPOSÓB: dodajemy tylko do kolekcji (strona odwrotna!)
             ship.getCrew().add(member);
             // NIE wołamy member.setShip(ship)!
 
+            // 🔴 BREAKPOINT 2: PO dodaniu do kolekcji, PRZED commit()
+            // 👁️ OBSERWUJ w Variables:
+            //    - ship.crew.size() = 1 (w pamięci Java!)
+            //    - member.ship = null (wciąż null!)
+            // 💡 ZADANIE: Sprawdź w Evaluate:
+            //    - ship.getCrew().contains(member) - zwróci true (w pamięci)
+            //    - member.getShip() - zwróci null (nie ustawione!)
+            // 💡 KLUCZOWA OBSERWACJA: Zmiana tylko w pamięci Java!
+            //    - Ship ma mappedBy = "ship" → strona ODWROTNA (tylko odczyt!)
+            //    - CrewMember ma @ManyToOne → strona WŁAŚCICIELA (zarządza FK!)
+            //    - Hibernate zapisuje relację TYLKO przez stronę właściciela!
+            // 💡 PYTANIE: Czy relacja zostanie zapisana w bazie?
+            //    Odpowiedź: NIE! Hibernate ignoruje zmiany na stronie odwrotnej!
+            //    Kolumna crew_member.ship_id pozostanie NULL w bazie!
+
             em.getTransaction().commit();
+
+            // 🔴 BREAKPOINT 3: PO commit()
+            // 👁️ OBSERWUJ: Logi SQL w konsoli
+            // 💡 ZADANIE: Sprawdź logi - NIE zobaczysz UPDATE dla crew_member.ship_id!
+            //    Hibernate wykonał tylko INSERT dla ship i member, ale BEZ relacji
+            // 💡 KLUCZOWA OBSERWACJA: Zmiana na stronie odwrotnej jest IGNOROWANA!
 
             System.out.println("   Zapisano statek ID: " + shipId);
             System.out.println("   Zapisano członka ID: " + memberId);
@@ -262,8 +292,21 @@ public class RelationsExercises {
         // Weryfikacja - sprawdź czy relacja została zapisana
         EntityManager em2 = emf.createEntityManager();
         try {
+            // 🔴 BREAKPOINT 4: Po pobraniu z bazy
             CrewMember memberFromDb = em2.find(CrewMember.class, memberId);
             Ship memberShip = memberFromDb.getShip();
+
+            // 👁️ OBSERWUJ w Variables:
+            //    - memberFromDb.ship = null (relacja NIE została zapisana!)
+            // 💡 KLUCZOWA OBSERWACJA: Relacja nie istnieje w bazie!
+            //    - W pamięci Java (przed commit) ship.crew zawierał member
+            //    - Ale w bazie crew_member.ship_id = NULL
+            //    - Hibernate zapisuje relację TYLKO przez stronę właściciela!
+            // 💡 ROZWIĄZANIE - 3 sposoby:
+            //    1. Ustaw stronę właściciela: member.setShip(ship);
+            //    2. Synchronizuj stronę odwrotną: ship.getCrew().add(member);
+            //    3. LUB użyj metody pomocniczej: ship.addCrewMember(member);
+            //       (ta metoda robi oba kroki automatycznie!)
 
             boolean relationSaved = memberShip != null;
 
@@ -526,16 +569,50 @@ public class RelationsExercises {
 
         EntityManager em1 = emf.createEntityManager();
         try {
+            // 🔴 BREAKPOINT 1: PRZED executeQuery
+            // 👁️ OBSERWUJ: Zaraz wykona się SELECT dla statków
+            // 💡 ZADANIE: Włącz logi SQL (hibernate.show_sql=true) i obserwuj konsolę
+            // 💡 LICZNIK: Policz ile SELECT zostanie wykonanych
+
             // Proste zapytanie - każdy dostęp do crew wygeneruje dodatkowy SELECT
             String jpqlWithoutFetch = "SELECT s FROM Ship s WHERE s.crew IS NOT EMPTY";
             List<Ship> ships = em1.createQuery(jpqlWithoutFetch, Ship.class).getResultList();
 
+            // 🔴 BREAKPOINT 2: PO executeQuery, PRZED pętlą
+            // 👁️ OBSERWUJ: W konsoli zobaczysz 1 SELECT dla ships
+            // 💡 LICZNIK: 1 zapytanie SQL (SELECT * FROM ship WHERE ...)
+            // 💡 PYTANIE: Czy załoga jest już załadowana?
+            //    Odpowiedź: NIE! FetchType.LAZY → załoga załaduje się przy dostępie
+            // 💡 ZADANIE: Rozwiń ships[0] w Variables
+            //    - ships[0].crew - zobaczysz PersistentBag (proxy Hibernate!)
+            //    - To jest "leniwy" obiekt - dane załadują się przy pierwszym użyciu
+
             System.out.println("   Pobrano " + ships.size() + " statków");
+
+            // 🔴 BREAKPOINT 3: PRZED pętlą for
+            // 💡 KLUCZOWA OBSERWACJA: Zaraz zobaczymy PROBLEM N+1!
+            //    - Mamy N statków (np. 3)
+            //    - Każdy dostęp do getCrew() wygeneruje dodatkowy SELECT
+            //    - Razem: 1 SELECT dla statków + N SELECT dla załóg = 1 + N zapytań!
 
             // Dostęp do załogi - tu generują się dodatkowe SELECTy!
             for (Ship ship : ships) {
+                // 🔴 BREAKPOINT 4: Wewnątrz pętli, PRZED getCrew()
+                // 👁️ OBSERWUJ: ship - pojedynczy statek
+                // 💡 ZADANIE: Rozwiń ship.crew w Variables - zobaczysz PersistentBag (proxy!)
+
                 System.out.println("   " + ship.getName() + " ma " + ship.getCrew().size() + " załogantów");
-                // Każde wywołanie getCrew().size() może wygenerować SELECT!
+
+                // 🔴 BREAKPOINT 5: PO getCrew().size()
+                // 👁️ OBSERWUJ: W konsoli zobaczysz dodatkowy SELECT dla załogi!
+                //    Hibernate: select ... from crew_member where ship_id=?
+                // 💡 KLUCZOWA OBSERWACJA: Każde wywołanie getCrew() generuje SELECT!
+                //    To jest PROBLEM N+1:
+                //    - 1 SELECT dla statków
+                //    - N SELECTów dla załogi (po jednym dla każdego statku)
+                //    - Razem: 1 + N zapytań!
+                // 💡 LICZNIK: Jeśli mamy 3 statki → 1 + 3 = 4 zapytania SQL!
+                //    Dla 100 statków → 1 + 100 = 101 zapytań! (KATASTROFA WYDAJNOŚCIOWA!)
             }
 
         } finally {
@@ -548,17 +625,49 @@ public class RelationsExercises {
 
         EntityManager em2 = emf.createEntityManager();
         try {
+            // 🔴 BREAKPOINT 6: PRZED executeQuery z JOIN FETCH
+            // 👁️ OBSERWUJ: Zaraz wykona się SELECT z JOIN
+            // 💡 ZADANIE: Obserwuj logi SQL - zobaczysz różnicę!
+
             // TODO: Zmień zapytanie na JOIN FETCH
             // Struktura: "SELECT DISTINCT s FROM Ship s JOIN FETCH s.crew"
             String jpqlWithFetch = "SELECT s FROM Ship s WHERE s.crew IS NOT EMPTY"; // <-- ZMIEŃ na JOIN FETCH
 
             List<Ship> ships = em2.createQuery(jpqlWithFetch, Ship.class).getResultList();
 
+            // 🔴 BREAKPOINT 7: PO executeQuery z JOIN FETCH
+            // 👁️ OBSERWUJ: W konsoli zobaczysz 1 SELECT z JOIN!
+            //    SELECT s.*, c.* FROM ship s LEFT JOIN crew_member c ON s.id = c.ship_id
+            // 💡 KLUCZOWA OBSERWACJA: Wszystko w JEDNYM zapytaniu!
+            //    - Hibernate załadował statki I załogi w jednym SELECT
+            //    - Użył LEFT JOIN aby pobrać wszystkie dane naraz
+            // 💡 LICZNIK: 1 zapytanie SQL (zamiast 1 + N)
+            // 💡 ZADANIE: Rozwiń ships[0] w Variables
+            //    - ships[0].crew - NIE zobaczysz PersistentBag (proxy)!
+            //    - Zobaczysz zwykłą listę z danymi - załoga jest już załadowana!
+
             System.out.println("   Pobrano " + ships.size() + " statków (z załogą w tym samym SELECT!)");
+
+            // 🔴 BREAKPOINT 8: PRZED pętlą for
+            // 💡 KLUCZOWA OBSERWACJA: Załoga jest już w pamięci!
+            //    - JOIN FETCH załadował wszystko w jednym zapytaniu
+            //    - Dostęp do getCrew() NIE wygeneruje dodatkowych SELECT
 
             for (Ship ship : ships) {
                 System.out.println("   " + ship.getName() + " ma " + ship.getCrew().size() + " załogantów");
+
+                // 🔴 BREAKPOINT 9: Wewnątrz pętli, PO getCrew()
+                // 👁️ OBSERWUJ: W konsoli NIE MA dodatkowych SELECT!
+                // 💡 KLUCZOWA OBSERWACJA: Załoga już jest w pamięci!
+                //    - JOIN FETCH załadował wszystko w jednym zapytaniu
+                //    - getCrew() zwraca dane z pamięci (bez SQL)
             }
+
+            // 💡 PODSUMOWANIE:
+            //    BEZ JOIN FETCH: 1 + N zapytań (np. 1 + 3 = 4)
+            //    Z JOIN FETCH: 1 zapytanie
+            //    Różnica: 4x mniej zapytań do bazy!
+            //    Dla 100 statków: 101 vs 1 = 101x szybciej!
 
             System.out.println("\n   Status: Porównaj liczbę SELECTów w logach!");
             System.out.println("   → JOIN FETCH ładuje relacje w jednym zapytaniu\n");

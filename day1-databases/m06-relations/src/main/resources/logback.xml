@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    ═══════════════════════════════════════════════════════════════════════
+    LOGBACK CONFIGURATION - Moduł m06-relations
+    ═══════════════════════════════════════════════════════════════════════
+    
+    Ten plik konfiguruje logowanie dla modułu Relations.
+    Główny cel: Pokazywać TYLKO zapytania SQL, aby obserwować relacje między encjami.
+    
+    W tym module obserwujemy:
+    - N+1 SELECT problem (wiele zapytań zamiast jednego)
+    - JOIN FETCH (optymalizacja - jedno zapytanie z JOIN)
+    - Lazy loading (SELECT wykonuje się przy dostępie do relacji)
+    - Eager loading (SELECT wykonuje się od razu)
+    - Cascade operations (INSERT/UPDATE/DELETE propagowane na powiązane encje)
+    - Owner vs Inverse side (która strona relacji zapisuje do bazy)
+    
+    KLUCZOWE dla tego modułu:
+    - Liczba zapytań SQL (1 vs N+1)
+    - Typ zapytań (SELECT z JOIN vs osobne SELECT)
+    - Kolejność zapytań (kiedy się wykonują)
+    
+    ═══════════════════════════════════════════════════════════════════════
+-->
+<configuration>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- APPENDER - Gdzie i jak logować                                   -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <!-- 
+                PATTERN - Format wiadomości:
+                %cyan([SQL]) - Kolorowy prefix [SQL] (niebieski)
+                %msg         - Treść wiadomości (zapytanie SQL)
+                %n           - Nowa linia
+                
+                Dla relations BARDZO PRZYDATNY jest timestamp - zobaczysz kolejność zapytań:
+                Odkomentuj poniższą linię aby zobaczyć czas wykonania (ważne dla N+1!):
+            -->
+            <pattern>%cyan([SQL]) %msg%n</pattern>
+            <!-- <pattern>%d{HH:mm:ss.SSS} %cyan([SQL]) %msg%n</pattern> -->
+        </encoder>
+    </appender>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- HIBERNATE SQL - Zapytania SQL                                    -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    
+    <!--
+        org.hibernate.SQL - Logger odpowiedzialny za zapytania SQL
+        
+        KLUCZOWE dla relations - zobaczysz:
+        
+        N+1 PROBLEM (ZŁE):
+        [SQL] select s1_0.id,s1_0.name from ships s1_0
+        [SQL] select c1_0.ship_id,c1_0.id,c1_0.name from crew_members c1_0 where c1_0.ship_id=?
+        [SQL] select c1_0.ship_id,c1_0.id,c1_0.name from crew_members c1_0 where c1_0.ship_id=?
+        [SQL] select c1_0.ship_id,c1_0.id,c1_0.name from crew_members c1_0 where c1_0.ship_id=?
+        ↑ 1 zapytanie dla statków + N zapytań dla załóg = N+1 problem!
+        
+        JOIN FETCH (DOBRE):
+        [SQL] select s1_0.id,s1_0.name,c1_0.ship_id,c1_0.id,c1_0.name 
+              from ships s1_0 
+              left join crew_members c1_0 on s1_0.id=c1_0.ship_id
+        ↑ JEDNO zapytanie z JOIN - wszystkie dane za jednym razem!
+    -->
+    <logger name="org.hibernate.SQL" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- PARAMETRY ZAPYTAŃ - Wartości podstawiane za znaki zapytania (?) -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    
+    <!--
+        org.hibernate.orm.jdbc.bind - Logger dla parametrów zapytań
+        
+        PRZYDATNE dla relations - zobaczysz:
+        - Jakie ID są używane w JOIN
+        - Jakie wartości są zapisywane w tabelach pośrednich (many-to-many)
+        - Wartości foreign key
+        
+        EFEKT po odkomentowaniu:
+        [SQL] select ... where c1_0.ship_id=?
+        binding parameter [1] as [BIGINT] - [1]
+        
+        UWAGA: Dla N+1 problem generuje BARDZO DUŻO logów!
+    -->
+
+    <logger name="org.hibernate.orm.jdbc.bind" level="TRACE" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- LAZY LOADING - Ładowanie relacji na żądanie                      -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    
+    <!--
+        org.hibernate.loader - Logger dla lazy loading
+        
+        PRZYDATNE dla relations - zobaczysz:
+        - Kiedy lazy loading się uruchamia
+        - Które kolekcje są ładowane
+        - Czy lazy loading powoduje dodatkowe SELECT
+        
+        DOMYŚLNIE WYŁĄCZONE - odkomentuj aby zobaczyć lazy loading w akcji
+        
+        EFEKT:
+        Initializing lazy property fetch
+        Loading entity: [Ship#1]
+        Loading collection: [Ship.crew#1]
+    -->
+    <!--
+    <logger name="org.hibernate.loader" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    -->
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- CASCADE - Propagacja operacji na powiązane encje                 -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    
+    <!--
+        org.hibernate.event.internal.DefaultPersistEventListener
+        org.hibernate.event.internal.DefaultDeleteEventListener
+        
+        PRZYDATNE dla relations - zobaczysz:
+        - Kiedy cascade PERSIST propaguje persist() na powiązane encje
+        - Kiedy cascade REMOVE propaguje remove() na powiązane encje
+        - Kolejność operacji (parent → child)
+        
+        DOMYŚLNIE WYŁĄCZONE - odkomentuj dla debugowania cascade
+    -->
+    <!--
+    <logger name="org.hibernate.event.internal.DefaultPersistEventListener" level="TRACE" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    <logger name="org.hibernate.event.internal.DefaultDeleteEventListener" level="TRACE" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    -->
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- STATYSTYKI HIBERNATE - Liczba zapytań, cache hits, itp.          -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+
+    <!--
+        org.hibernate.stat - Logger dla statystyk Hibernate
+
+        BARDZO PRZYDATNE dla relations - zobaczysz:
+        - Liczbę wykonanych zapytań (ważne dla N+1!)
+        - Czas wykonania zapytań
+        - Cache hits/misses
+
+        WYMAGA RÓWNIEŻ w persistence.xml:
+        <property name="hibernate.generate_statistics" value="true"/>
+
+        DOMYŚLNIE WYŁĄCZONE - odkomentuj aby zobaczyć statystyki
+
+        EFEKT:
+        HHH000117: HQL: SELECT s FROM Ship s, time: 5ms, rows: 3
+        HHH000117: HQL: SELECT c FROM CrewMember c WHERE c.ship.id = ?, time: 2ms, rows: 5
+        ↑ Zobaczysz ile zapytań i jak długo trwały!
+    -->
+    <!--
+    <logger name="org.hibernate.stat" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    -->
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- COLLECTION - Zarządzanie kolekcjami (OneToMany, ManyToMany)      -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+
+    <!--
+        org.hibernate.collection - Logger dla kolekcji
+
+        PRZYDATNE dla relations - zobaczysz:
+        - Kiedy kolekcja jest inicjalizowana (lazy loading)
+        - Kiedy elementy są dodawane/usuwane z kolekcji
+        - Dirty checking dla kolekcji
+
+        DOMYŚLNIE WYŁĄCZONE - odkomentuj dla zaawansowanego debugowania
+    -->
+    <!--
+    <logger name="org.hibernate.collection" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    -->
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- WYŁĄCZANIE NIEPOTRZEBNYCH LOGÓW                                  -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+
+    <!-- Wyłącz wszystkie inne logi Hibernate (poza SQL i statystykami) -->
+    <logger name="org.hibernate" level="WARN"/>
+
+    <!--
+        UWAGA: Logger org.hibernate.stat MUSI być poniżej org.hibernate!
+        Dzięki additivity="false" i bardziej specyficznej nazwie (org.hibernate.stat)
+        ten logger ma wyższy priorytet niż ogólny org.hibernate
+    -->
+    <logger name="org.hibernate.stat" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    
+    <!-- Wyłącz logi HikariCP (connection pool) -->
+    <logger name="com.zaxxer.hikari" level="WARN"/>
+    
+    <!-- Wyłącz logi JBoss (używane przez Hibernate) -->
+    <logger name="org.jboss" level="WARN"/>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- ROOT LOGGER - Domyślny poziom dla wszystkich innych logów        -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    
+    <!--
+        Root logger - łapie wszystkie logi, które nie mają własnego loggera
+        
+        level="WARN" - Pokazuj tylko ostrzeżenia i błędy (+ SQL z powyższych loggerów)
+        
+        Dla relations ZALECAM:
+        - level="OFF"  - TYLKO SQL (najczytelsze dla analizy N+1)
+        - level="WARN" - SQL + ostrzeżenia (domyślne)
+        
+        UWAGA: Dla N+1 problem najlepiej mieć TYLKO SQL, żeby policzyć zapytania!
+    -->
+    <root level="WARN">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+</configuration>
+
