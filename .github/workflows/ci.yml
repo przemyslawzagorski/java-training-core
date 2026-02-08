@@ -49,10 +49,11 @@ jobs:
         name: jacoco-reports
         path: '**/target/site/jacoco/'
 
-    # 6. (Opcjonalnie) Upload artefaktów
+    # 6. (Opcjonalnie) Upload artefaktów JAR z wszystkich modułów
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
-       name: Package
-       path: target/*.jar
+       name: build-artifacts
+       path: '**/target/*.jar'
+       if-no-files-found: ignore
 
