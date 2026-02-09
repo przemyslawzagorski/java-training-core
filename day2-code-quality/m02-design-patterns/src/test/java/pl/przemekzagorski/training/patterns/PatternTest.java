@@ -469,4 +469,156 @@ class PatternTest {
         battleShip.setAttackStrategy(new pl.przemekzagorski.training.patterns.strategy.CannonAttack());
         assertDoesNotThrow(() -> battleShip.attack("Enemy"));
     }
+
+    // ════════════════════════════════════════════════════════════════
+    // TESTY CQRS
+    // ════════════════════════════════════════════════════════════════
+
+    @Nested
+    @DisplayName("CQRS Pattern - Demo")
+    class CQRSTests {
+
+        @Test
+        @DisplayName("Commands powinny zmieniać stan (void)")
+        void commands_shouldChangeState() {
+            // Given
+            pl.przemekzagorski.training.patterns.cqrs.PirateDatabase database =
+                    new pl.przemekzagorski.training.patterns.cqrs.PirateDatabase();
+            pl.przemekzagorski.training.patterns.cqrs.CommandBus commandBus =
+                    new pl.przemekzagorski.training.patterns.cqrs.CommandBus();
+
+            commandBus.registerHandler(
+                    pl.przemekzagorski.training.patterns.cqrs.CreatePirateCommand.class,
+                    new pl.przemekzagorski.training.patterns.cqrs.CreatePirateCommandHandler(database)
+            );
+
+            // When
+            pl.przemekzagorski.training.patterns.cqrs.CreatePirateCommand command =
+                    new pl.przemekzagorski.training.patterns.cqrs.CreatePirateCommand(
+                            "Jack Sparrow", "Captain", 10000);
+            commandBus.execute(command);
+
+            // Then - Command nie zwraca wartości, ale zmienia stan
+            var pirate = database.findById(1L);
+            assertTrue(pirate.isPresent(), "Pirat powinien zostać utworzony");
+            assertEquals("Jack Sparrow", pirate.get().getName());
+        }
+
+        @Test
+        @DisplayName("Queries powinny zwracać dane bez zmiany stanu")
+        void queries_shouldReturnDataWithoutChangingState() {
+            // Given
+            pl.przemekzagorski.training.patterns.cqrs.PirateDatabase database =
+                    new pl.przemekzagorski.training.patterns.cqrs.PirateDatabase();
+            pl.przemekzagorski.training.patterns.cqrs.QueryBus queryBus =
+                    new pl.przemekzagorski.training.patterns.cqrs.QueryBus();
+
+            queryBus.registerHandler(
+                    pl.przemekzagorski.training.patterns.cqrs.GetPirateByIdQuery.class,
+                    new pl.przemekzagorski.training.patterns.cqrs.GetPirateByIdQueryHandler(database)
+            );
+
+            // Dodaj pirata bezpośrednio do bazy
+            database.save(new pl.przemekzagorski.training.patterns.cqrs.Pirate(
+                    1L, "Jack Sparrow", "Captain", 10000));
+
+            // When
+            pl.przemekzagorski.training.patterns.cqrs.GetPirateByIdQuery query =
+                    new pl.przemekzagorski.training.patterns.cqrs.GetPirateByIdQuery(1L);
+            var result = queryBus.execute(query);
+
+            // Then
+            assertTrue(result.isPresent(), "Query powinno zwrócić pirata");
+            assertEquals("Jack Sparrow", result.get().getName());
+        }
+
+        @Test
+        @DisplayName("CommandBus i QueryBus powinny być rozdzielone")
+        void commandBusAndQueryBus_shouldBeSeparated() {
+            // Given
+            pl.przemekzagorski.training.patterns.cqrs.PirateDatabase database =
+                    new pl.przemekzagorski.training.patterns.cqrs.PirateDatabase();
+            pl.przemekzagorski.training.patterns.cqrs.CommandBus commandBus =
+                    new pl.przemekzagorski.training.patterns.cqrs.CommandBus();
+            pl.przemekzagorski.training.patterns.cqrs.QueryBus queryBus =
+                    new pl.przemekzagorski.training.patterns.cqrs.QueryBus();
+
+            // When - rejestrujemy handlery w różnych busach
+            commandBus.registerHandler(
+                    pl.przemekzagorski.training.patterns.cqrs.CreatePirateCommand.class,
+                    new pl.przemekzagorski.training.patterns.cqrs.CreatePirateCommandHandler(database)
+            );
+            queryBus.registerHandler(
+                    pl.przemekzagorski.training.patterns.cqrs.GetPirateByIdQuery.class,
+                    new pl.przemekzagorski.training.patterns.cqrs.GetPirateByIdQueryHandler(database)
+            );
+
+            // Then - oba busy działają niezależnie
+            assertDoesNotThrow(() -> {
+                commandBus.execute(new pl.przemekzagorski.training.patterns.cqrs.CreatePirateCommand(
+                        "Jack Sparrow", "Captain", 10000));
+                queryBus.execute(new pl.przemekzagorski.training.patterns.cqrs.GetPirateByIdQuery(1L));
+            });
+        }
+
+        @Test
+        @DisplayName("UpdateBountyCommand powinien aktualizować nagrodę")
+        void updateBountyCommand_shouldUpdateBounty() {
+            // Given
+            pl.przemekzagorski.training.patterns.cqrs.PirateDatabase database =
+                    new pl.przemekzagorski.training.patterns.cqrs.PirateDatabase();
+            pl.przemekzagorski.training.patterns.cqrs.CommandBus commandBus =
+                    new pl.przemekzagorski.training.patterns.cqrs.CommandBus();
+
+            commandBus.registerHandler(
+                    pl.przemekzagorski.training.patterns.cqrs.CreatePirateCommand.class,
+                    new pl.przemekzagorski.training.patterns.cqrs.CreatePirateCommandHandler(database)
+            );
+            commandBus.registerHandler(
+                    pl.przemekzagorski.training.patterns.cqrs.UpdateBountyCommand.class,
+                    new pl.przemekzagorski.training.patterns.cqrs.UpdateBountyCommandHandler(database)
+            );
+
+            // When
+            commandBus.execute(new pl.przemekzagorski.training.patterns.cqrs.CreatePirateCommand(
+                    "Jack Sparrow", "Captain", 10000));
+            commandBus.execute(new pl.przemekzagorski.training.patterns.cqrs.UpdateBountyCommand(
+                    1L, 50000));
+
+            // Then
+            var pirate = database.findById(1L);
+            assertTrue(pirate.isPresent());
+            assertEquals(50000, pirate.get().getBounty());
+        }
+
+        @Test
+        @DisplayName("FindPiratesByRankQuery powinno zwrócić listę piratów")
+        void findPiratesByRankQuery_shouldReturnList() {
+            // Given
+            pl.przemekzagorski.training.patterns.cqrs.PirateDatabase database =
+                    new pl.przemekzagorski.training.patterns.cqrs.PirateDatabase();
+            pl.przemekzagorski.training.patterns.cqrs.QueryBus queryBus =
+                    new pl.przemekzagorski.training.patterns.cqrs.QueryBus();
+
+            queryBus.registerHandler(
+                    pl.przemekzagorski.training.patterns.cqrs.FindPiratesByRankQuery.class,
+                    new pl.przemekzagorski.training.patterns.cqrs.FindPiratesByRankQueryHandler(database)
+            );
+
+            // Dodaj piratów
+            database.save(new pl.przemekzagorski.training.patterns.cqrs.Pirate(
+                    1L, "Jack Sparrow", "Captain", 10000));
+            database.save(new pl.przemekzagorski.training.patterns.cqrs.Pirate(
+                    2L, "Hector Barbossa", "Captain", 15000));
+            database.save(new pl.przemekzagorski.training.patterns.cqrs.Pirate(
+                    3L, "Will Turner", "First Mate", 5000));
+
+            // When
+            var captains = queryBus.execute(
+                    new pl.przemekzagorski.training.patterns.cqrs.FindPiratesByRankQuery("Captain"));
+
+            // Then
+            assertEquals(2, captains.size(), "Powinno być 2 kapitanów");
+        }
+    }
 }

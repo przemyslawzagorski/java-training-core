@@ -588,6 +588,44 @@ public class PatternExercises {
      * 🆘 Rozwiązanie w PatternExercisesSolutions.solutionBonus_miniProject()
      */
 
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    // EXERCISE 6: CQRS - Command Query Responsibility Segregation ⭐⭐
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+
+    /**
+     * 🎯 CEL: Zrozumieć separację Commands (zmiany) od Queries (odczyt)
+     *
+     * 📚 TEORIA:
+     * - Command = ZMIENIA stan (void) - CREATE, UPDATE, DELETE
+     * - Query = ODCZYTUJE dane (zwraca wynik) - READ
+     * - CommandBus i QueryBus rozdzielają odpowiedzialności
+     *
+     * 🏴‍☠️ SCENARIUSZ: System zarządzania piratami
+     *
+     * ✅ ZADANIE:
+     * 1. Uruchom kod i obserwuj separację Commands/Queries
+     * 2. Dodaj nową komendę: DeletePirateCommand
+     * 3. Dodaj nowe zapytanie: CountPiratesQuery
+     */
+    public void exercise6_cqrs_pirateManagement() {
+        System.out.println("═".repeat(70));
+        System.out.println("EXERCISE 6: CQRS - Command Query Responsibility Segregation ⭐⭐");
+        System.out.println("═".repeat(70));
+        System.out.println();
+
+        // TODO: Zaimplementuj CQRS pattern
+        // 1. Stwórz Commands (CreatePirate, UpdateBounty)
+        // 2. Stwórz Queries (GetPirateById, FindByRank)
+        // 3. Stwórz CommandBus i QueryBus
+        // 4. Zarejestruj handlery
+        // 5. Wykonaj operacje
+
+        System.out.println("💡 HINT: Sprawdź CQRSDemo.java dla pełnego przykładu!");
+        System.out.println("💡 HINT: Commands zwracają void, Queries zwracają wynik!");
+        System.out.println();
+    }
+
+
     /**
      * Uruchom wszystkie ćwiczenia.
      */
@@ -601,6 +639,7 @@ public class PatternExercises {
         System.out.println("║  3. Builder (ŚREDNI) - uzupełnij TODO                            ║");
         System.out.println("║  4. Strategy (TRUDNY) - napisz od zera                           ║");
         System.out.println("║  5. Quiz (QUIZ) - rozpoznaj wzorzec na papierze                  ║");
+        System.out.println("║  6. CQRS (ŚREDNI) - separacja Commands/Queries                   ║");
         System.out.println("╚═══════════════════════════════════════════════════════════════════╝");
         System.out.println();
         System.out.println("🚀 Uruchamiam ćwiczenia...\n");
@@ -616,6 +655,9 @@ public class PatternExercises {
 
         // Exercise 4: TRUDNY - napisz od zera
         exercises.exercise4_strategy_navigation();
+
+        // Exercise 6: ŚREDNI - CQRS pattern
+        exercises.exercise6_cqrs_pirateManagement();
 
         System.out.println("\n" + "=".repeat(60));
         System.out.println("✅ Wszystkie ćwiczenia wykonane!");

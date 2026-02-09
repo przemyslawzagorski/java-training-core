@@ -17,6 +17,7 @@
     <description>Hibernate zaawansowany, wzorce projektowe, refaktoring, SOLID, narzędzia</description>
 
     <modules>
+        <module>m01-spring-data-advanced</module>
         <module>m01-hibernate-advanced</module>
         <module>m02-design-patterns</module>
         <module>m03-refactoring</module>

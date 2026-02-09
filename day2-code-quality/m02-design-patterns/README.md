@@ -35,6 +35,20 @@ m02-design-patterns/
 │   │   ├── Navigator.java          # Nawigator (observer)
 │   │   ├── Cook.java               # Kucharz (observer)
 │   │   └── ObserverDemo.java       # Demo observera
+│   ├── cqrs/
+│   │   ├── Command.java            # Marker interface dla komend
+│   │   ├── Query.java              # Marker interface dla zapytań
+│   │   ├── CreatePirateCommand.java
+│   │   ├── UpdateBountyCommand.java
+│   │   ├── GetPirateByIdQuery.java
+│   │   ├── FindPiratesByRankQuery.java
+│   │   ├── CommandHandler.java     # Handler dla komend
+│   │   ├── QueryHandler.java       # Handler dla zapytań
+│   │   ├── CommandBus.java         # Dispatcher komend
+│   │   ├── QueryBus.java           # Dispatcher zapytań
+│   │   ├── Pirate.java             # Model danych
+│   │   ├── PirateDatabase.java     # In-memory storage
+│   │   └── CQRSDemo.java           # Demo CQRS
 │   ├── PatternExercises.java       # 📝 Ćwiczenia
 │   └── PatternExercisesSolutions.java # ✅ Rozwiązania
 └── src/test/java/
@@ -53,6 +67,7 @@ m02-design-patterns/
 | `strategy/` | Strategy | `StrategyDemo` | Różne taktyki ataku |
 | `decorator/` | Decorator | `DecoratorDemo` | Ulepszenia statku |
 | `observer/` | Observer | `ObserverDemo` | Kapitan ogłasza, załoga reaguje |
+| `cqrs/` | CQRS | `CQRSDemo` | Separacja Commands/Queries |
 
 ---
 
@@ -227,7 +242,198 @@ captain.giveOrder("Battle stations!");
 
 ---
 
-## 📝 Ćwiczenia (25 min)
+### 7. CQRS - separacja Command/Query
+
+**Kiedy:** Chcesz WYRAŹNIE oddzielić operacje ZMIENIAJĄCE stan od ODCZYTUJĄCYCH.
+
+**CQRS = Command Query Responsibility Segregation**
+
+```java
+// Command = ZMIENIA stan (void)
+public record CreatePirateCommand(String name, String rank, int bounty) implements Command {}
+
+// Query = ODCZYTUJE dane (zwraca wynik)
+public record GetPirateByIdQuery(Long id) implements Query<Optional<Pirate>> {}
+
+// Użycie
+CommandBus commandBus = new CommandBus();
+QueryBus queryBus = new QueryBus();
+
+// Wykonaj komendę (zmiana stanu)
+commandBus.execute(new CreatePirateCommand("Jack Sparrow", "Captain", 10000));
+
+// Wykonaj zapytanie (odczyt)
+Optional<Pirate> pirate = queryBus.execute(new GetPirateByIdQuery(1L));
+```
+
+**Diagram:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    CQRS PATTERN                             │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  ┌──────────────────┐         ┌──────────────────┐         │
+│  │   COMMANDS       │         │    QUERIES       │         │
+│  │  (Write Side)    │         │   (Read Side)    │         │
+│  ├──────────────────┤         ├──────────────────┤         │
+│  │ CreatePirate     │         │ GetPirateById    │         │
+│  │ UpdateBounty     │         │ FindByRank       │         │
+│  │ DeletePirate     │         │ CountPirates     │         │
+│  └────────┬─────────┘         └────────┬─────────┘         │
+│           │                            │                    │
+│           ▼                            ▼                    │
+│  ┌──────────────────┐         ┌──────────────────┐         │
+│  │  CommandBus      │         │   QueryBus       │         │
+│  └────────┬─────────┘         └────────┬─────────┘         │
+│           │                            │                    │
+│           ▼                            ▼                    │
+│  ┌──────────────────┐         ┌──────────────────┐         │
+│  │ CommandHandlers  │         │  QueryHandlers   │         │
+│  └────────┬─────────┘         └────────┬─────────┘         │
+│           │                            │                    │
+│           └────────────┬───────────────┘                    │
+│                        ▼                                     │
+│                ┌──────────────┐                             │
+│                │   DATABASE   │                             │
+│                └──────────────┘                             │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🔄 Ewolucja: DAO → Repository → CQRS
+
+### Porównanie wzorców dostępu do danych
+
+| Aspekt | DAO (Dzień 1) | Repository (Spring Data) | CQRS |
+|--------|---------------|--------------------------|------|
+| **Cel** | Oddzielenie SQL od logiki | Zero boilerplate | Separacja read/write |
+| **Kod** | Interface + implementacja | Tylko interface | Commands + Queries |
+| **Operacje** | CRUD w jednym miejscu | CRUD w jednym miejscu | **Rozdzielone!** |
+| **Złożoność** | ⭐⭐ | ⭐ | ⭐⭐⭐ |
+| **Skalowalność** | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| **Kiedy używać** | Legacy, pełna kontrola | 99% projektów | Duże systemy, Event Sourcing |
+
+### 1️⃣ DAO Pattern (Dzień 1, m03-jdbc-crud)
+
+```java
+// Interface
+public interface PirateDao {
+    Pirate save(Pirate pirate);           // CREATE
+    Optional<Pirate> findById(Long id);   // READ
+    void update(Pirate pirate);           // UPDATE
+    void delete(Long id);                 // DELETE
+}
+
+// Implementacja JDBC
+public class JdbcPirateDao implements PirateDao {
+    // 50+ linii SQL, PreparedStatement, ResultSet...
+}
+```
+
+**Zalety:**
+- ✅ Oddzielenie SQL od logiki biznesowej
+- ✅ Wymienność implementacji (JDBC → JPA → MongoDB)
+- ✅ Łatwe testowanie (mock DAO)
+
+**Wady:**
+- ❌ Dużo boilerplate code
+- ❌ Ręczne zarządzanie transakcjami
+- ❌ CRUD w jednym miejscu (read + write razem)
+
+---
+
+### 2️⃣ Repository Pattern (Dzień 1, m09-spring-data)
+
+```java
+// To jest CAŁY KOD!
+public interface PirateRepository extends JpaRepository<Pirate, Long> {
+    List<Pirate> findByRank(String rank);
+    List<Pirate> findByBountyGreaterThan(BigDecimal amount);
+}
+
+// Spring Data generuje implementację automatycznie!
+```
+
+**Zalety:**
+- ✅ Zero boilerplate (Spring generuje kod)
+- ✅ Query methods (SQL z nazwy metody)
+- ✅ @Transactional (automatyczne zarządzanie)
+- ✅ Produktywność ⭐⭐⭐⭐⭐
+
+**Wady:**
+- ❌ CRUD w jednym miejscu (read + write razem)
+- ❌ Trudne skalowanie (jedna baza dla read i write)
+
+---
+
+### 3️⃣ CQRS Pattern (Dzień 2, m02-design-patterns)
+
+```java
+// COMMANDS (Write Side) - ZMIENIAJĄ stan
+public record CreatePirateCommand(String name, String rank, int bounty) implements Command {}
+public record UpdateBountyCommand(Long id, int newBounty) implements Command {}
+
+// QUERIES (Read Side) - ODCZYTUJĄ dane
+public record GetPirateByIdQuery(Long id) implements Query<Optional<Pirate>> {}
+public record FindPiratesByRankQuery(String rank) implements Query<List<Pirate>> {}
+
+// Użycie
+commandBus.execute(new CreatePirateCommand("Jack", "Captain", 10000));  // Write
+Optional<Pirate> pirate = queryBus.execute(new GetPirateByIdQuery(1L)); // Read
+```
+
+**Zalety:**
+- ✅ **Wyraźna separacja** read/write
+- ✅ **Niezależne skalowanie** (osobne bazy dla read i write)
+- ✅ **Optymalizacja** (read model vs write model)
+- ✅ **Event Sourcing** (łatwa integracja)
+- ✅ **Testowanie** (łatwe mockowanie)
+
+**Wady:**
+- ❌ Większa złożoność
+- ❌ Więcej kodu (Commands, Queries, Handlers, Buses)
+- ❌ Eventual consistency (read model może być nieaktualny)
+
+---
+
+### 🎯 Kiedy używać którego wzorca?
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                  WYBÓR WZORCA                               │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  DAO (Data Access Object)                                   │
+│  ├─ Legacy projekty                                         │
+│  ├─ Potrzebujesz pełnej kontroli nad SQL                    │
+│  └─ Wymienność implementacji (JDBC ↔ JPA ↔ MongoDB)        │
+│                                                              │
+│  Repository (Spring Data)                                   │
+│  ├─ 99% nowych projektów! ⭐⭐⭐⭐⭐                          │
+│  ├─ Chcesz produktywności                                   │
+│  ├─ Standardowe operacje CRUD                               │
+│  └─ Jedna baza danych                                       │
+│                                                              │
+│  CQRS (Command Query Responsibility Segregation)            │
+│  ├─ Duże systemy (miliony użytkowników)                    │
+│  ├─ Różne wymagania dla read i write                       │
+│  ├─ Event Sourcing                                          │
+│  ├─ Niezależne skalowanie read/write                       │
+│  └─ Mikroservices                                           │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Przykład ewolucji:**
+1. **Start projektu** → Repository (Spring Data) - szybki start
+2. **Rośnie ruch** → Dodaj cache dla read (Redis)
+3. **Miliony użytkowników** → CQRS (osobne bazy dla read/write)
+
+---
+
+## 📝 Ćwiczenia (30 min)
 
 Otwórz `PatternExercises.java`:
 
@@ -238,6 +444,7 @@ Otwórz `PatternExercises.java`:
 | 3 | Builder - Zamówienie w tawernie | 5 min | ⭐⭐ |
 | 4 | Strategy - Nawigacja statku | 5 min | ⭐⭐ |
 | 5 | Quiz - Rozpoznaj wzorzec | 5 min | ⭐ |
+| 6 | CQRS - System zarządzania piratami | 5 min | ⭐⭐ |
 
 **Rozwiązania:** `PatternExercisesSolutions.java`
 
@@ -253,6 +460,7 @@ Otwórz `PatternExercises.java`:
 | Wymienne algorytmy | Strategy | `Collections.sort(list, comparator)` |
 | Dodawanie funkcji dynamicznie | Decorator | `new BufferedReader(new FileReader())` |
 | Powiadamianie o zmianach | Observer | `button.addActionListener()` |
+| Separacja read/write | CQRS | Event Sourcing, Mikroservices |
 
 ---
 
@@ -295,6 +503,9 @@ mvn test
 │                                                              │
 │  "Zmiana wymaga POWIADOMIENIA wielu obiektów"               │
 │     └── OBSERVER                                             │
+│                                                              │
+│  "Chcę ODDZIELIĆ operacje read od write"                    │
+│     └── CQRS                                                 │
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
 ```

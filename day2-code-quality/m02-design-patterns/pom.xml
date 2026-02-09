@@ -14,7 +14,7 @@
     <packaging>jar</packaging>
 
     <name>Moduł 02: Design Patterns</name>
-    <description>Wzorce projektowe: Singleton, Factory, Builder, Strategy</description>
+    <description>Wzorce projektowe: Singleton, Factory, Builder, Strategy, Decorator, Observer, CQRS</description>
 
 </project>
 
