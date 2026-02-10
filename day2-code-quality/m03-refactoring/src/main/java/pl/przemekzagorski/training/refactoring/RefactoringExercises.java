@@ -9,6 +9,48 @@ package pl.przemekzagorski.training.refactoring;
  * ╚═══════════════════════════════════════════════════════════════════╝
  *
  * Praktyczne ćwiczenia z naprawiania złego kodu!
+ *
+ * ╔═══════════════════════════════════════════════════════════════════╗
+ * ║  🛠️ JAK PRACOWAĆ Z TYM PLIKIEM?                                  ║
+ * ╠═══════════════════════════════════════════════════════════════════╣
+ * ║                                                                   ║
+ * ║  1. URUCHOM main() - zobaczysz wszystkie ćwiczenia               ║
+ * ║                                                                   ║
+ * ║  2. PISZ SWOJE ROZWIĄZANIA tutaj! Możesz:                        ║
+ * ║     • Dodawać nowe METODY                                        ║
+ * ║     • Dodawać KLASY WEWNĘTRZNE (inner classes)                   ║
+ * ║     • Dodawać INTERFEJSY i ENUMY                                 ║
+ * ║     • Dodawać STAŁE (static final)                               ║
+ * ║                                                                   ║
+ * ║  3. PRZYKŁAD - gdzie pisać kod:                                  ║
+ * ║     ┌─────────────────────────────────────────────────────────┐  ║
+ * ║     │  // Twoja wyodrębniona metoda (ćwiczenie 1):            │  ║
+ * ║     │  private int myCalculateDamage(int cannons, int crew) { │  ║
+ * ║     │      // TODO: Twój kod                                  │  ║
+ * ║     │  }                                                      │  ║
+ * ║     │                                                         │  ║
+ * ║     │  // Twoja klasa wewnętrzna (ćwiczenie 2):               │  ║
+ * ║     │  private static class MyShip {                          │  ║
+ * ║     │      // TODO: Twój kod                                  │  ║
+ * ║     │  }                                                      │  ║
+ * ║     │                                                         │  ║
+ * ║     │  // Twoje stałe (ćwiczenie 3):                          │  ║
+ * ║     │  private static final int DAMAGE_PER_CANNON = 10;       │  ║
+ * ║     │                                                         │  ║
+ * ║     │  // Twój interfejs (ćwiczenie 4):                       │  ║
+ * ║     │  interface MyBattleRepository {                         │  ║
+ * ║     │      void save(String winner);                          │  ║
+ * ║     │  }                                                      │  ║
+ * ║     └─────────────────────────────────────────────────────────┘  ║
+ * ║                                                                   ║
+ * ║  4. PORÓWNAJ z RefactoringExercisesSolutions.java                ║
+ * ║                                                                   ║
+ * ║  💡 TIP: Użyj skrótów IDE!                                       ║
+ * ║     • Ctrl+Alt+M = Extract Method                                ║
+ * ║     • Ctrl+Alt+C = Extract Constant                              ║
+ * ║     • Ctrl+Alt+F = Extract Field                                 ║
+ * ║     • Shift+F6   = Rename                                        ║
+ * ╚═══════════════════════════════════════════════════════════════════╝
  */
 public class RefactoringExercises {
 
@@ -528,6 +570,140 @@ public class RefactoringExercises {
      * - Brak magic numbers
      * - Interfejsy dla zależności zewnętrznych
      */
+
+    // ╔═══════════════════════════════════════════════════════════════════╗
+    // ║                                                                   ║
+    // ║   🎯 MIEJSCE NA TWOJE ROZWIĄZANIA - PISZ PONIŻEJ!               ║
+    // ║                                                                   ║
+    // ║   Dodawaj tutaj:                                                  ║
+    // ║   • Wyodrębnione metody (ćwiczenie 1)                            ║
+    // ║   • Klasy wewnętrzne (ćwiczenie 2)                               ║
+    // ║   • Stałe (ćwiczenie 3)                                          ║
+    // ║   • Interfejsy (ćwiczenie 4)                                     ║
+    // ║                                                                   ║
+    // ╚═══════════════════════════════════════════════════════════════════╝
+
+    // ────────────────────────────────────────────────────────────────────
+    // ĆWICZENIE 1: Twoje wyodrębnione metody
+    // ────────────────────────────────────────────────────────────────────
+
+    // TODO: Wyodrębnij metodę calculateDamage(int cannons, int crew)
+    // Przenieś logikę obliczania obrażeń z processBattle_LongMethod()
+    /*
+    private int myCalculateDamage(int cannons, int crew) {
+        // Twój kod tutaj!
+        return 0;
+    }
+    */
+
+    // TODO: Wyodrębnij metodę determineWinner(...)
+    /*
+    private String myDetermineWinner(String ship1Name, int health1,
+                                     String ship2Name, int health2) {
+        // Twój kod tutaj!
+        return "";
+    }
+    */
+
+    // ────────────────────────────────────────────────────────────────────
+    // ĆWICZENIE 2: Twoje klasy wewnętrzne (Extract Class)
+    // ────────────────────────────────────────────────────────────────────
+
+    // TODO: Stwórz klasę Ship (albo record)
+    /*
+    private static class MyShip {
+        private final String name;
+        private final int cannons;
+        private final int crew;
+        private int health;
+
+        // Konstruktor, gettery...
+        // Metoda calculateDamage() - Feature Envy: logika powinna być TU!
+    }
+    */
+
+    // TODO: Stwórz klasę DamageCalculator (Single Responsibility)
+    /*
+    private static class MyDamageCalculator {
+        public int calculate(int cannons, int crew) {
+            // Twój kod tutaj!
+            return 0;
+        }
+    }
+    */
+
+    // ────────────────────────────────────────────────────────────────────
+    // ĆWICZENIE 3: Twoje stałe (Replace Magic Numbers)
+    // ────────────────────────────────────────────────────────────────────
+
+    // TODO: Zamień magic numbers na stałe z opisowymi nazwami
+    /*
+    private static final int MY_DAMAGE_PER_CANNON = 10;
+    private static final int MY_MEDIUM_CREW_THRESHOLD = 50;
+    private static final int MY_LARGE_CREW_THRESHOLD = 100;
+    private static final int MY_MEDIUM_CREW_BONUS = 20;
+    private static final int MY_LARGE_CREW_BONUS = 30;
+    */
+
+    // ────────────────────────────────────────────────────────────────────
+    // ĆWICZENIE 4: Twoje interfejsy (Dependency Inversion)
+    // ────────────────────────────────────────────────────────────────────
+
+    // TODO: Stwórz interfejs BattleRepository
+    /*
+    interface MyBattleRepository {
+        void save(String winner);
+    }
+    */
+
+    // TODO: Stwórz interfejs NotificationService
+    /*
+    interface MyNotificationService {
+        void notifyWinner(String winner);
+    }
+    */
+
+    // TODO: Stwórz implementacje (możesz mieć różne!)
+    /*
+    private static class MyInMemoryRepository implements MyBattleRepository {
+        @Override
+        public void save(String winner) {
+            System.out.println("Saved: " + winner);
+        }
+    }
+
+    private static class MyEmailNotification implements MyNotificationService {
+        @Override
+        public void notifyWinner(String winner) {
+            System.out.println("Email sent to: " + winner);
+        }
+    }
+    */
+
+    // ────────────────────────────────────────────────────────────────────
+    // BONUS: Twój zrefaktorowany BattleService
+    // ────────────────────────────────────────────────────────────────────
+
+    // TODO: Połącz wszystko w jeden elegancki serwis!
+    /*
+    private static class MyBattleService {
+        private final MyDamageCalculator calculator;
+        private final MyBattleRepository repository;
+        private final MyNotificationService notifications;
+
+        public MyBattleService(MyDamageCalculator calculator,
+                               MyBattleRepository repository,
+                               MyNotificationService notifications) {
+            this.calculator = calculator;
+            this.repository = repository;
+            this.notifications = notifications;
+        }
+
+        public void fight(MyShip ship1, MyShip ship2) {
+            // Twój kod tutaj!
+        }
+    }
+    */
 
     public static void main(String[] args) {
         System.out.println("╔═══════════════════════════════════════════════════════════════════╗");
