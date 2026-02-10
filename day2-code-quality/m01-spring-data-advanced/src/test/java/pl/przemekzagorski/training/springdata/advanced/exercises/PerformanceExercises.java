@@ -129,11 +129,11 @@ class PerformanceExercises {
     @DisplayName("⭐⭐ Ćwiczenie 2: Paginacja + filtrowanie")
     @Disabled("Usuń @Disabled aby rozwiązać ćwiczenie")
     void exercise2_paginationWithFiltering() {
-        // TODO: Stwórz Pageable
-        Pageable pageable = null;
+        // TODO: Stwórz Pageable (strona 0, 5 elementów, sortowanie po name)
+        Pageable pageable = null;  // <-- ZMIEŃ TO
 
-        // TODO: Znajdź kapitanów z paginacją
-        Page<Pirate> captains = null;
+        // TODO: Znajdź kapitanów używając pirateRepository.findByRank("Captain", pageable)
+        Page<Pirate> captains = null;  // <-- ZMIEŃ TO
 
         // Asercje
         assertThat(captains).isNotNull();
@@ -166,8 +166,8 @@ class PerformanceExercises {
     @DisplayName("⭐⭐ Ćwiczenie 3: Projekcje")
     @Disabled("Usuń @Disabled aby rozwiązać ćwiczenie")
     void exercise3_projections() {
-        // TODO: Pobierz projekcję kapitanów
-        List<PirateNameOnly> captains = null;
+        // TODO: Pobierz projekcję kapitanów używając pirateRepository.findProjectedByRank("Captain")
+        List<PirateNameOnly> captains = null;  // <-- ZMIEŃ TO
 
         // Asercje
         assertThat(captains).isNotEmpty();
@@ -230,24 +230,22 @@ class PerformanceExercises {
     @DisplayName("⭐⭐⭐ Ćwiczenie 5: Iteracja przez strony")
     @Disabled("Usuń @Disabled aby rozwiązać ćwiczenie")
     void exercise5_pageIteration() {
-        // TODO: Stwórz Pageable dla pierwszej strony
-        Pageable pageable = PageRequest.of(0, 10);
+        // TODO: Stwórz Pageable dla pierwszej strony (strona 0, 10 elementów)
+        Pageable pageable = null;  // <-- ZMIEŃ TO
 
-        // TODO: Pobierz pierwszą stronę
-        Page<Pirate> page = pirateRepository.findAll(pageable);
+        // TODO: Pobierz pierwszą stronę używając pirateRepository.findAll(pageable)
+        Page<Pirate> page = null;  // <-- ZMIEŃ TO
 
         int totalCounted = 0;
 
         // TODO: Iteruj przez wszystkie strony i sumuj elementy
-        while (page.hasContent()) {
-            // TODO: Dodaj liczbę elementów na tej stronie
-            totalCounted += 0;  // <-- ZMIEŃ TO
+        // PODPOWIEDŹ: Użyj pętli while (page.hasContent())
+        // W każdej iteracji:
+        // 1. Dodaj page.getNumberOfElements() do totalCounted
+        // 2. Sprawdź page.hasNext() - jeśli false, to break
+        // 3. Pobierz następną stronę: page = pirateRepository.findAll(page.nextPageable())
 
-            // TODO: Sprawdź czy jest następna strona, jeśli nie - break
-            // TODO: Pobierz następną stronę
-
-            fail("Zaimplementuj iterację");
-        }
+        // <-- TUTAJ TWOJA PĘTLA
 
         // Asercje
         assertThat(totalCounted).isEqualTo(page.getTotalElements());
@@ -280,14 +278,14 @@ class PerformanceExercises {
     @DisplayName("⭐⭐⭐⭐ Ćwiczenie 6: Cache L2")
     @Disabled("Usuń @Disabled aby rozwiązać ćwiczenie")
     void exercise6_cacheL2() {
-        // TODO: Pobierz pirata ID=1
-        Pirate pirate1 = null;
+        // TODO: Pobierz pirata ID=1 używając pirateRepository.findById(1L).orElseThrow()
+        Pirate pirate1 = null;  // <-- ZMIEŃ TO
 
-        // TODO: Wyczyść Cache L1
-        // entityManager.clear();
+        // TODO: Wyczyść Cache L1 (Session cache) używając entityManager.clear()
+        // <-- DODAJ TUTAJ
 
-        // TODO: Pobierz tego samego pirata ponownie
-        Pirate pirate2 = null;
+        // TODO: Pobierz tego samego pirata ponownie (ID=1)
+        Pirate pirate2 = null;  // <-- ZMIEŃ TO
 
         // Asercje
         assertThat(pirate1).isNotNull();
